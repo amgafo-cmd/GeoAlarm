@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>GeoAlarma – Alarma por ubicación</title>
-    <!-- Estilos estables oficiales de Leaflet mediante CDNJS (Máxima compatibilidad con GitHub Pages) -->
+    <!-- Estilos estables oficiales de Leaflet mediante CDNJS -->
     <link rel="stylesheet" href="https://cloudflare.com" />
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 0; padding: 15px; background-color: #f5f5f7; color: #333; }
@@ -13,7 +13,7 @@
         .status-badge { display: block; text-align: center; font-weight: bold; padding: 8px; background-color: #ffebee; color: #c62828; border-radius: 6px; margin-bottom: 15px; }
         .status-badge.active { background-color: #e8f5e9; color: #2e7d32; }
         
-        /* Contenedor del mapa reforzado con dimensiones fijas obligatorias */
+        /* Dimensiones fijas reforzadas para asegurar la visibilidad del mapa */
         #map { height: 350px !important; width: 100% !important; border-radius: 8px; margin-bottom: 15px; background: #e5e5e5; display: block; position: relative; }
         
         .control-group { margin-bottom: 15px; }
@@ -34,10 +34,10 @@
 </head>
 <body>
 <div class="container">
-    <h1>📍 GeoAlarma</h1>
+    <h1>📍 GeoAlarm</h1>
     <div id="status" class="status-badge">Inactivo</div>
 
-    <!-- Buscador integrado en formulario compatible con teclados móviles (Ir / Siguiente) -->
+    <!-- Buscador integrado en formulario para capturar los botones Ir / Siguiente de los móviles -->
     <form id="search-form" class="control-group" action="#" onsubmit="return false;">
         <input type="text" id="search" placeholder="Escribe dirección y pulsa Buscar o Ir..." enterkeyhint="search">
     </form>
@@ -51,13 +51,11 @@
     <div class="control-group">
         <label>Definir radio de aviso:</label>
         <div class="radio-container">
-            <!-- Valor por defecto inicializado exactamente en 10 metros -->
             <input type="number" id="radius" value="10" min="5">
             <span>metros</span>
         </div>
     </div>
 
-    <!-- CUADRO DE TEXTO LIBRE: Recordatorio personalizado -->
     <div class="control-group">
         <label for="reminder">Recordatorio al llegar:</label>
         <input type="text" id="reminder" placeholder="Ej: Comprar leche, bajar en la próxima parada...">
@@ -77,7 +75,7 @@
     </div>
 </div>
 
-<!-- Carga nativa del motor de mapas de Leaflet (CDNJS Segura) -->
+<!-- Motor JavaScript oficial de Leaflet -->
 <script src="https://cloudflare.com"></script>
 <script>
     let map, userMarker, targetMarker, distanceCircle;
@@ -86,28 +84,32 @@
     let watchId = null;
     let audioContext = null;
 
-    // Inicializar mapa de manera asíncrona estándar
+    // Inicialización inmediata del mapa (Evita colapsos visuales)
     map = L.map('map').setView([40.416775, -3.703790], 13);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '© OpenStreetMap'
     }).addTo(map);
 
-    // ESCUDO DE RENDERIZADO: Fuerza al mapa a dibujarse si detecta dimensiones en pantalla
+    // Forzar el re-dibujado del mapa al cargar y al cambiar de tamaño
     const observer = new ResizeObserver(() => { if (map) { map.invalidateSize(); } });
     observer.observe(document.getElementById("map"));
     window.addEventListener('load', () => { setTimeout(() => { map.invalidateSize(); }, 400); });
 
-    // Rastrear la ubicación inmediata del usuario
+    // Intento seguro de geolocalización (Si falla, el mapa sigue mostrándose perfectamente)
     if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(position => {
             userCoords = [position.coords.latitude, position.coords.longitude];
             map.setView(userCoords, 16);
             userMarker = L.marker(userCoords, {title: "Tu ubicación"}).addTo(map).bindPopup("Estás aquí").openPopup();
             map.invalidateSize();
+        }, (error) => {
+            console.log("Ubicación inicial omitida o denegada: ", error.message);
+            // El mapa se mantiene visible en la posición por defecto
+            map.invalidateSize();
         });
     }
 
-    // Buscador adaptado a teclados virtuales (Captura cualquier tecla de envío)
+    // Buscador universal para móviles (Soporta 'Ir', 'Siguiente', 'Buscar' o 'Enter')
     document.getElementById('search-form').addEventListener('submit', function(e) {
         e.preventDefault();
         const query = document.getElementById('search').value.trim();
@@ -117,23 +119,23 @@
             .then(res => res.json())
             .then(data => {
                 if (data && data.length > 0) {
-                    const lat = parseFloat(data[0].lat);
-                    const lon = parseFloat(data[0].lon);
+                    const lat = parseFloat(data.lat);
+                    const lon = parseFloat(data.lon);
                     targetCoords = [lat, lon];
                     
                     map.setView(targetCoords, 16);
                     if (targetMarker) { targetMarker.setLatLng(targetCoords); } 
                     else { targetMarker = L.marker(targetCoords, {color: 'red'}).addTo(map); }
-                    targetMarker.bindPopup(`<b>Destino:</b><br>${data[0].display_name}`).openPopup();
+                    targetMarker.bindPopup(`<b>Destino:</b><br>${data.display_name}`).openPopup();
                     
                     actualizarCirculoYDistancia();
                     document.getElementById('search').blur(); // Cierra el teclado en smartphones
                 } else {
-                    alert("Dirección no encontrada. Prueba a ser más específico con la localidad.");
+                    alert("Dirección no encontrada. Intenta detallar la ciudad.");
                 }
             }).catch(() => { alert("Error de respuesta al buscar las coordenadas."); });
     });
-    // Fijar destino de manera manual haciendo un toque directo en el mapa
+    // Toque manual sobre la pantalla para fijar destino directamente
     map.on('click', function(e) {
         targetCoords = [e.latlng.lat, e.latlng.lng];
         if (targetMarker) { targetMarker.setLatLng(targetCoords).bindPopup("Destino seleccionado").openPopup(); } 
@@ -154,7 +156,7 @@
     }
     document.getElementById('radius').addEventListener('input', actualizarCirculoYDistancia);
 
-    // Activación perimetral de la alarma (Geofencing)
+    // Activación perimetral continua de la alarma
     document.getElementById('btn-start').addEventListener('click', () => {
         if (!targetCoords) { alert("Elige un destino en el mapa o búscalo arriba antes de empezar."); return; }
         document.getElementById('status').innerText = "🚨 Alarma Activa";
@@ -167,7 +169,10 @@
             document.getElementById('distance-display').innerText = Math.round(dist);
             const alarmRadius = parseInt(document.getElementById('radius').value) || 10;
             if (dist <= alarmRadius) { activarAvisoAlarmante(); }
-        }, error => { console.error(error); }, { enableHighAccuracy: true, maximumAge: 0, timeout: 5000 });
+        }, error => { 
+            console.error(error);
+            alert("Para usar la alarma activa, debes permitir el acceso al GPS en los ajustes de tu navegador.");
+        }, { enableHighAccuracy: true, maximumAge: 0, timeout: 5000 });
     });
 
     document.getElementById('btn-stop').addEventListener('click', detenerAlarma);
@@ -189,13 +194,12 @@
             setTimeout(() => osc.stop(), 2500);
         } catch(e) {}
 
-        // Validación inteligente de la caja del recordatorio libre
         const mensajeRecordatorio = document.getElementById('reminder').value.trim();
         if (mensajeRecordatorio !== "") { alert("🚨 ¡HAS LLEGADO AL DESTINO!\n\n📌 Recordatorio: " + mensajeRecordatorio); } 
         else { alert("🚨 ¡HAS LLEGADO AL DESTINO!"); }
     }
 
-    // Almacenamiento básico en Favoritos
+    // Almacenamiento básico en favoritos
     document.getElementById('btn-save').addEventListener('click', () => {
         if (!targetCoords) return;
         const nombreFav = prompt("Nombre de la ubicación favorita:", "Destino Guardado");
