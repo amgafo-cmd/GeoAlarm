@@ -4,8 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>GeoAlarma – Alarma por ubicación</title>
-    <!-- Estilos de Leaflet para el Mapa -->
-    <link rel="stylesheet" href="https://unpkg.com" />
+    <!-- Estilos oficiales de Leaflet para renderizar el mapa correctamente -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
@@ -34,7 +34,16 @@
             margin-bottom: 15px;
         }
         .status-badge.active { background-color: #e8f5e9; color: #2e7d32; }
-        #map { height: 300px; width: 100%; border-radius: 8px; margin-bottom: 15px; }
+        
+        /* Contenedor del mapa con dimensiones fijas obligatorias */
+        #map { 
+            height: 320px !important; 
+            width: 100% !important; 
+            border-radius: 8px; 
+            margin-bottom: 15px; 
+            background: #e0e0e0;
+        }
+        
         .control-group { margin-bottom: 15px; }
         label { display: block; margin-bottom: 5px; font-weight: bold; font-size: 14px; }
         input[type="text"], input[type="number"] {
@@ -67,6 +76,7 @@
         <input type="text" id="search" placeholder="Buscar lugar o dirección...">
     </div>
 
+    <!-- Div donde se inyectará el mapa -->
     <div id="map"></div>
 
     <p style="text-align: center; font-size: 14px; margin: 5px 0 15px 0; color: #666;">
@@ -101,8 +111,8 @@
     </div>
 </div>
 
-<!-- Scripts de Leaflet para el Mapa -->
-<script src="https://unpkg.com"></script>
+<!-- Scripts obligatorios de Leaflet -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
     // Variables globales
     let map, userMarker, targetMarker, distanceCircle;
@@ -117,6 +127,13 @@
         attribution: '© OpenStreetMap'
     }).addTo(map);
 
+    // SOLUCIÓN FIX: Forzar al mapa a recalcular sus dimensiones físicas reales
+    map.whenReady(() => {
+        setTimeout(() => {
+            map.invalidateSize();
+        }, 300);
+    });
+
     // Obtener la ubicación real del usuario en tiempo real
     if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(position => {
@@ -124,6 +141,7 @@
             map.setView(userCoords, 15);
             userMarker = L.marker(userCoords, {title: "Tu ubicación"}).addTo(map)
                 .bindPopup("Estás aquí").openPopup();
+            map.invalidateSize(); // Reajuste tras cargar coordenadas
         });
     } else {
         alert("La geolocalización no está soportada por tu navegador.");
@@ -145,7 +163,7 @@
 
     // Dibujar el radio visual en el mapa y calcular la distancia inicial
     function actualizarCirculoYDistancia() {
-        const radiusVal = parseInt(document.getElementById('radius').value) || 10;
+        const radiusVal = parseInt(document.getElementById('radius').value) || 150;
         
         if (distanceCircle) map.removeLayer(distanceCircle);
         if (targetCoords) {
@@ -183,7 +201,7 @@
             const dist = map.distance(userCoords, targetCoords);
             document.getElementById('distance-display').innerText = Math.round(dist);
 
-            const alarmRadius = parseInt(document.getElementById('radius').value) || 10;
+            const alarmRadius = parseInt(document.getElementById('radius').value) || 150;
 
             // Verificar si el usuario ha entrado en el perímetro
             if (dist <= alarmRadius) {
