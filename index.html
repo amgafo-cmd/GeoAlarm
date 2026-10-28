@@ -3,7 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GeoAlarma – Alarma por ubicación con Google</title>
+    <title>GeoAlarma – OpenStreetMap Gratis</title>
+    <!-- Estilos oficiales de OpenStreetMap para que el mapa no se descuadre -->
+    <link rel="stylesheet" href="https://cloudflare.com" />
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 0; padding: 15px; background-color: #f5f5f7; color: #333; }
         .container { max-width: 600px; margin: 0 auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
@@ -11,46 +13,38 @@
         .status-badge { display: block; text-align: center; font-weight: bold; padding: 8px; background-color: #ffebee; color: #c62828; border-radius: 6px; margin-bottom: 15px; }
         .status-badge.active { background-color: #e8f5e9; color: #2e7d32; }
         
-        /* Contenedor oficial para el mapa de Google */
+        /* Caja del mapa con dimensiones fijas obligatorias para evitar que salga invisible */
         #map { height: 350px !important; width: 100% !important; border-radius: 8px; margin-bottom: 15px; background: #e5e5e5; display: block; position: relative; }
         
         .control-group { margin-bottom: 15px; }
         label { display: block; margin-bottom: 5px; font-weight: bold; font-size: 14px; }
         input[type="text"], input[type="number"] { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; font-size: 16px; }
-        
-        /* Ajuste de diseño obligatorio para el autocompletado flotante de Google */
-        .pac-container { border-radius: 8px; box-shadow: 0 2px 6px rgba(0,0,0,0.2); font-family: inherit; z-index: 9999 !important; }
-        
         .radio-container { display: flex; align-items: center; gap: 10px; }
         .radio-container input { flex: 1; }
         .btn-container { display: flex; gap: 10px; margin-bottom: 15px; }
         button { flex: 1; padding: 12px; border: none; border-radius: 6px; font-size: 16px; font-weight: bold; cursor: pointer; transition: background 0.2s; }
-        .btn-activate { background-color: #4caf50; color: white; }
-        .btn-activate:hover { background-color: #43a047; }
-        .btn-stop { background-color: #f44336; color: white; }
-        .btn-stop:hover { background-color: #e53935; }
-        .btn-save { background-color: #ffb300; color: white; }
-        .favorites { background: #f9f9f9; padding: 10px; border-radius: 6px; border: 1px dashed #ccc; }
-        .fav-item { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid #eee; font-size: 14px; cursor: pointer; color: #007aff; }
+        .btn-activate { background-color: #34c759; color: white; }
+        .btn-stop { background-color: #ff3b30; color: white; }
+        .btn-save { background-color: #ff9500; color: white; }
+        .favorites { background: #f2f2f7; padding: 12px; border-radius: 8px; border: 1px dashed #aeaeb2; }
+        .fav-item { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid #e5e5ea; font-size: 14px; cursor: pointer; color: #007aff; }
     </style>
 </head>
 <body>
 <div class="container">
-    <h1>📍 GeoAlarm</h1>
+    <h1>📍 GeoAlarma OSM</h1>
     <div id="status" class="status-badge">Inactivo</div>
 
-    <!-- Barra de búsqueda enlazada al autocompletado inteligente de Google Places -->
-    <div class="control-group">
-        <input type="text" id="search" placeholder="Empieza a escribir una dirección...">
-    </div>
+    <!-- Buscador universal adaptado a teclados móviles (Ir/Siguiente) -->
+    <form id="search-form" class="control-group" action="#" onsubmit="return false;">
+        <input type="text" id="search" placeholder="Escribe calle, ciudad o lugar y pulsa Ir..." enterkeyhint="search">
+    </form>
 
-    <!-- Lienzo del mapa oficial de Google -->
     <div id="map"></div>
 
     <p style="text-align: center; font-size: 14px; margin: 5px 0 15px 0; color: #666;">
         Distancia al destino: <span id="distance-display" style="font-weight: bold;">--</span> metros
     </p>
-
     <div class="control-group">
         <label>Definir radio de aviso:</label>
         <div class="radio-container">
@@ -59,157 +53,115 @@
         </div>
     </div>
 
-    <!-- CUADRO DE TEXTO LIBRE: Recordatorio personalizado -->
+    <!-- CUADRO DE TEXTO LIBRE: Recordatorio -->
     <div class="control-group">
         <label for="reminder">Recordatorio al llegar:</label>
         <input type="text" id="reminder" placeholder="Ej: Comprar leche, bajar en la próxima parada...">
     </div>
 
     <div class="btn-container">
-        <button class="btn-activate" id="btn-start">▶ Activar</button>
+        <button class="btn-activate" id="btn-start">▶ Activar Alarma</button>
         <button class="btn-stop" id="btn-stop">⏹ Detener</button>
         <button class="btn-save" id="btn-save">⭐ Guardar</button>
     </div>
 
     <div class="favorites">
-        <strong>Favoritos:</strong>
+        <strong>Favoritos rápidos:</strong>
         <div id="favorites-list">
             <div style="color: #888; font-size: 12px; margin-top: 5px;">No tienes favoritos guardados aún.</div>
         </div>
     </div>
 </div>
-<!-- Librería oficial de mapas y sugerencias de Google Maps -->
-<script src="https://googleapis.com"></script>
+
+<!-- Cargamos el motor de OpenStreetMap con seguridad HTTPS obligatoria -->
+<script src="https://cloudflare.com"></script>
 
 <script>
-    let map, autocomplete, userMarker, targetMarker, distanceCircle;
-    let userCoords = null;
-    let targetCoords = null;
-    let watchId = null;
-    let audioContext = null;
+    let map, userMarker, targetMarker, distanceCircle;
+    let userCoords = null, targetCoords = null, watchId = null, audioContext = null;
 
-    // Inicializar Google Maps centrado por defecto en una vista general de España
-    function initApp() {
-        const defaultCoords = { lat: 40.416775, lng: -3.703790 };
-        map = new google.maps.Map(document.getElementById('map'), {
-            center: defaultCoords,
-            zoom: 13,
-            disableDefaultUI: true,
-            zoomControl: true
-        });
+    // Inicializar mapa de OpenStreetMap centrado por defecto en Madrid
+    map = L.map('map', { zoomControl: true }).setView([40.4167, -3.7037], 13);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
-        // Configurar el autocompletado en el cuadro de búsqueda
-        const input = document.getElementById('search');
-        autocomplete = new google.maps.places.Autocomplete(input);
-        autocomplete.bindTo('bounds', map);
+    // FIX ANTIBLOQUEO: Fuerza al mapa a renderizarse visualmente pase lo que pase
+    const observer = new ResizeObserver(() => { if (map) map.invalidateSize(); });
+    observer.observe(document.getElementById("map"));
 
-        // Evento cuando seleccionas una dirección sugerida por Google
-        autocomplete.addListener('place_changed', () => {
-            const place = autocomplete.getPlace();
-            if (!place.geometry || !place.geometry.location) {
-                return;
-            }
-
-            targetCoords = {
-                lat: place.geometry.location.lat(),
-                lng: place.geometry.location.lng()
-            };
-
-            // Mover el mapa y colocar el marcador rojo de destino
-            map.setCenter(targetCoords);
-            map.setZoom(16);
-
-            if (targetMarker) targetMarker.setMap(null);
-            targetMarker = new google.maps.Marker({
-                position: targetCoords,
-                map: map,
-                icon: 'https://google.com'
-            });
-
-            actualizarCirculoYDistancia();
-        });
-
-        // Obtener la ubicación en tiempo real del usuario
-        if (navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition(position => {
-                userCoords = { lat: position.coords.latitude, lng: position.coords.longitude };
-                map.setCenter(userCoords);
-                
-                userMarker = new google.maps.Marker({
-                    position: userCoords,
-                    map: map,
-                    title: "Tu ubicación",
-                    icon: 'https://google.com'
-                });
-            });
-        }
-
-        // Permitir elegir destino tocando directamente sobre Google Maps
-        map.addListener('click', (e) => {
-            targetCoords = { lat: e.latLng.lat(), lng: e.latLng.lng() };
-            
-            if (targetMarker) targetMarker.setMap(null);
-            targetMarker = new google.maps.Marker({
-                position: targetCoords,
-                map: map,
-                icon: 'https://google.com'
-            });
-
-            actualizarCirculoYDistancia();
-        });
+    // Intentar ubicar al usuario al arrancar de forma segura
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(position => {
+            userCoords = [position.coords.latitude, position.coords.longitude];
+            map.setView(userCoords, 15);
+            userMarker = L.marker(userCoords).addTo(map).bindPopup("Estás aquí").openPopup();
+            map.invalidateSize();
+        }, () => { map.invalidateSize(); });
     }
 
-    // Inicializar la aplicación al cargar la ventana
-    window.addEventListener('load', initApp);
+    // BUSCADOR ADAPTADO: Usa un desvío de servidor para saltarse el error de conexión en móviles
+    document.getElementById('search-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const query = document.getElementById('search').value.trim();
+        if (!query) return;
+
+        // Buscador OpenStreetMap libre optimizado para evitar bloqueos por CORS o identidad
+        fetch(`https://openstreetmap.org{encodeURIComponent(query)}&limit=1`, {
+            headers: { 'Accept': 'application/json', 'User-Agent': 'GeoAlarmaGratisOSM/1.0' }
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data && data.length > 0) {
+                targetCoords = [parseFloat(data[0].lat), parseFloat(data[0].lon)];
+                map.setView(targetCoords, 16);
+                
+                if (targetMarker) targetMarker.setLatLng(targetCoords);
+                else targetMarker = L.marker(targetCoords, { draggable: false }).addTo(map);
+                
+                targetMarker.bindPopup(`<b>Destino:</b><br>${query}`).openPopup();
+                actualizarCirculoYDistancia();
+                document.getElementById('search').blur(); // Oculta el teclado móvil
+            } else { alert("Lugar no encontrado."); }
+        }).catch(() => { alert("Error al conectar temporalmente con el servidor. Intenta tocar el mapa con el dedo."); });
+    });
+    // También permite fijar el destino dando un toque directo en la pantalla sobre el mapa
+    map.on('click', function(e) {
+        targetCoords = [e.latlng.lat, e.latlng.lng];
+        if (targetMarker) targetMarker.setLatLng(targetCoords).bindPopup("Destino fijado").openPopup();
+        else targetMarker = L.marker(targetCoords).addTo(map).bindPopup("Destino fijado").openPopup();
+        actualizarCirculoYDistancia();
+    });
+
     function actualizarCirculoYDistancia() {
         const radiusVal = parseInt(document.getElementById('radius').value) || 10;
-        
-        if (distanceCircle) distanceCircle.setMap(null);
+        if (distanceCircle) map.removeLayer(distanceCircle);
         if (targetCoords) {
-            distanceCircle = new google.maps.Circle({
-                strokeColor: '#4caf50',
-                strokeOpacity: 0.8,
-                strokeWeight: 2,
-                fillColor: '#81c784',
-                fillOpacity: 0.2,
-                map: map,
-                center: targetCoords,
-                radius: radiusVal
-            });
+            distanceCircle = L.circle(targetCoords, { color: '#34c759', fillColor: '#34c759', fillOpacity: 0.15, radius: radiusVal }).addTo(map);
         }
-
         if (userCoords && targetCoords) {
-            // Calcular distancia matemática exacta mediante la librería de Google
-            const pUser = new google.maps.LatLng(userCoords.lat, userCoords.lng);
-            const pTarget = new google.maps.LatLng(targetCoords.lat, targetCoords.lng);
-            const dist = google.maps.geometry.spherical.computeDistanceBetween(pUser, pTarget);
+            const dist = map.distance(userCoords, targetCoords);
             document.getElementById('distance-display').innerText = Math.round(dist);
         }
     }
-
     document.getElementById('radius').addEventListener('input', actualizarCirculoYDistancia);
 
-    // Activación del rastreador perimetral de la alarma
+    // Iniciar rastreador métrico continuo (Geofencing)
     document.getElementById('btn-start').addEventListener('click', () => {
-        if (!targetCoords) { alert("Busca una dirección o toca el mapa antes de activar la alarma."); return; }
+        if (!targetCoords) { alert("Elige un destino tocando el mapa o buscándolo arriba."); return; }
         
         document.getElementById('status').innerText = "🚨 Alarma Activa";
         document.getElementById('status').className = "status-badge active";
 
         watchId = navigator.geolocation.watchPosition(position => {
-            userCoords = { lat: position.coords.latitude, lng: position.coords.longitude };
-            if (userMarker) userMarker.setPosition(userCoords);
+            userCoords = [position.coords.latitude, position.coords.longitude];
+            if (userMarker) userMarker.setLatLng(userCoords);
 
-            const pUser = new google.maps.LatLng(userCoords.lat, userCoords.lng);
-            const pTarget = new google.maps.LatLng(targetCoords.lat, targetCoords.lng);
-            const dist = google.maps.geometry.spherical.computeDistanceBetween(pUser, pTarget);
+            const dist = map.distance(userCoords, targetCoords);
             document.getElementById('distance-display').innerText = Math.round(dist);
 
             const alarmRadius = parseInt(document.getElementById('radius').value) || 10;
             if (dist <= alarmRadius) { activarAvisoAlarmante(); }
-        }, () => {
-            alert("Por favor, activa el GPS de tu móvil para usar el rastreador.");
-        }, { enableHighAccuracy: true, maximumAge: 0, timeout: 5000 });
+        }, () => { alert("GPS denegado. Concede permisos en los ajustes de tu móvil."); }, 
+        { enableHighAccuracy: true, maximumAge: 0, timeout: 5000 });
     });
 
     document.getElementById('btn-stop').addEventListener('click', detenerAlarma);
@@ -231,6 +183,7 @@
             setTimeout(() => osc.stop(), 2500);
         } catch(e) {}
 
+        // Ventana emergente con el recordatorio del cuadro de texto libre
         const mensajeRecordatorio = document.getElementById('reminder').value.trim();
         if (mensajeRecordatorio !== "") { 
             alert("🚨 ¡HAS LLEGADO AL DESTINO!\n\n📌 Recordatorio: " + mensajeRecordatorio); 
@@ -239,7 +192,7 @@
         }
     }
 
-    // Almacenamiento en Favoritos
+    // Favoritos
     document.getElementById('btn-save').addEventListener('click', () => {
         if (!targetCoords) return;
         const name = document.getElementById('search').value.trim() || "Destino Guardado";
@@ -249,12 +202,12 @@
         item.className = 'fav-item';
         item.innerHTML = `<span>⭐ ${name}</span>`;
         
-        let guardadas = { ...targetCoords };
+        let guardadas = [...targetCoords];
         item.onclick = () => {
             targetCoords = guardadas;
             document.getElementById('search').value = name;
-            map.setCenter(targetCoords);
-            if (targetMarker) targetMarker.setPosition(targetCoords);
+            map.setView(targetCoords, 16);
+            if (targetMarker) targetMarker.setLatLng(targetCoords);
             actualizarCirculoYDistancia();
         };
         list.appendChild(item);
