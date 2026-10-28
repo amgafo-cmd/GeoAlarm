@@ -76,7 +76,7 @@
     <div class="control-group">
         <label>Definir radio de aviso:</label>
         <div class="radio-container">
-            <input type="number" id="radius" value="150" min="10">
+            <input type="number" id="radius" value="10" min="10">
             <span>metros</span>
         </div>
     </div>
@@ -145,7 +145,7 @@
 
     // Dibujar el radio visual en el mapa y calcular la distancia inicial
     function actualizarCirculoYDistancia() {
-        const radiusVal = parseInt(document.getElementById('radius').value) || 150;
+        const radiusVal = parseInt(document.getElementById('radius').value) || 10;
         
         if (distanceCircle) map.removeLayer(distanceCircle);
         if (targetCoords) {
@@ -183,7 +183,7 @@
             const dist = map.distance(userCoords, targetCoords);
             document.getElementById('distance-display').innerText = Math.round(dist);
 
-            const alarmRadius = parseInt(document.getElementById('radius').value) || 150;
+            const alarmRadius = parseInt(document.getElementById('radius').value) || 10;
 
             // Verificar si el usuario ha entrado en el perímetro
             if (dist <= alarmRadius) {
