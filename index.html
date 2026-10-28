@@ -4,161 +4,59 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>GeoAlarma – Alarma por ubicación</title>
-    <!-- 1. Cargamos los estilos oficiales del mapa de forma prioritaria -->
-    <link rel="stylesheet" href="https://cloudflare.com" />
+    <!-- Estilos esenciales incrustados para renderizar el mapa de forma nativa e independiente -->
     <style>
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            margin: 0;
-            padding: 15px;
-            background-color: #f5f5f7;
-            color: #333;
-        }
-        .container {
-            max-width: 600px;
-            margin: 0 auto;
-            background: white;
-            padding: 20px;
-            border-radius: 12px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-        }
-        h1 { text-align: center; margin-top: 0; font-size: 24px; }
-        .status-badge {
-            display: block;
-            text-align: center;
-            font-weight: bold;
-            padding: 8px;
-            background-color: #ffebee;
-            color: #c62828;
-            border-radius: 6px;
-            margin-bottom: 15px;
-        }
-        .status-badge.active { background-color: #e8f5e9; color: #2e7d32; }
-        
-        /* FIX DEFINITIVO DE TAMAÑO: Dimensiones físicas estrictas y visibles por CSS */
-        #map { 
-            height: 350px !important; 
-            width: 100% !important; 
-            border-radius: 8px; 
-            margin-bottom: 15px; 
-            background: #e5e5e5;
-            position: relative;
-            display: block;
-        }
-        
-        .control-group { margin-bottom: 15px; }
-        label { display: block; margin-bottom: 5px; font-weight: bold; font-size: 14px; }
-        input[type="text"], input[type="number"] {
-            width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; font-size: 16px;
-        }
-        .radio-container { display: flex; align-items: center; gap: 10px; }
-        .radio-container input { flex: 1; }
-        .btn-container { display: flex; gap: 10px; margin-bottom: 15px; }
-        button {
-            flex: 1; padding: 12px; border: none; border-radius: 6px; font-size: 16px; font-weight: bold; cursor: pointer; transition: background 0.2s;
-        }
-        .btn-activate { background-color: #4caf50; color: white; }
-        .btn-activate:hover { background-color: #43a047; }
-        .btn-stop { background-color: #f44336; color: white; }
-        .btn-stop:hover { background-color: #e53935; }
-        .btn-save { background-color: #ffb300; color: white; }
-        .btn-save:hover { background-color: #ffa000; }
-        .favorites { background: #f9f9f9; padding: 10px; border-radius: 6px; border: 1px dashed #ccc; }
-        .fav-item { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid #eee; font-size: 14px; }
-        .fav-item:last-child { border: none; }
+        .leaflet-pane,.leaflet-tile,.leaflet-marker-icon,.leaflet-marker-shadow,.leaflet-tile-container,.leaflet-map-pane svg,.leaflet-map-pane canvas,.leaflet-zoom-box,.leaflet-image-layer,.leaflet-layer{position:absolute;left:0;top:0}.leaflet-container{overflow:hidden;-ms-touch-action:none;touch-action:none;cursor:default;-webkit-user-select:none;-moz-user-select:none;-ms-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}.leaflet-tile,.leaflet-marker-icon,.leaflet-marker-shadow{-webkit-user-drag:none;user-select:none;-webkit-user-select:none}.leaflet-tile{filter:inherit;visibility:hidden}.leaflet-tile-loaded{visibility:inherit}.leaflet-zoom-box{width:0;height:0;box-sizing:border-box;z-index:800}.leaflet-pane{z-index:400}.leaflet-tile-pane{z-index:200}.leaflet-overlay-pane{z-index:400}.leaflet-shadow-pane{z-index:500}.leaflet-marker-pane{z-index:600}.leaflet-tooltip-pane{z-index:650}.leaflet-popup-pane{z-index:700}.leaflet-map-pane canvas{z-index:100}.leaflet-map-pane svg{z-index:200}.leaflet-vml-shape{width:1px;height:1px}.lvml{behavior:url(#default#VML);display:inline-block;position:absolute}.leaflet-control{position:relative;z-index:800;pointer-events:auto}.leaflet-top,.leaflet-bottom{position:absolute;z-index:1000;pointer-events:none}.leaflet-top{top:0}.leaflet-right{right:0}.leaflet-bottom{bottom:0}.leaflet-left{left:0}.leaflet-control{float:left;clear:both}.leaflet-right .leaflet-control{float:right}.leaflet-top .leaflet-control{margin-top:10px}.leaflet-bottom .leaflet-control{margin-bottom:10px}.leaflet-left .leaflet-control{margin-left:10px}.leaflet-right .leaflet-control{margin-right:10px}.leaflet-fade-anim .leaflet-tile{opacity:0;-webkit-transition:opacity .2s linear;-moz-transition:opacity .2s linear;transition:opacity .2s linear}.leaflet-fade-anim .leaflet-tile-loaded{opacity:1}.leaflet-zoom-animated{-webkit-transform-origin:0 0;-ms-transform-origin:0 0;transform-origin:0 0}body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;margin:0;padding:15px;background-color:#f5f5f7;color:#333}.container{max-width:600px;margin:0 auto;background:white;padding:20px;border-radius:12px;box-shadow:0 4px 6px rgba(0,0,0,0.1)}h1{text-align:center;margin-top:0;font-size:24px}.status-badge{display:block;text-align:center;font-weight:bold;padding:8px;background-color:#ffebee;color:#c62828;border-radius:6px;margin-bottom:15px}.status-badge.active{background-color:#e8f5e9;color:#2e7d32}
+        /* Contenedor del mapa reforzado con visibilidad asegurada en navegadores móviles */
+        #map{height:350px !important;width:100% !important;border-radius:8px;margin-bottom:15px;background:#e5e5e5;position:relative;display:block;z-index:1}
+        .control-group{margin-bottom:15px}label{display:block;margin-bottom:5px;font-weight:bold;font-size:14px}input[type="text"],input[type="number"]{width:100%;padding:10px;border:1px solid #ccc;border-radius:6px;box-sizing:border-box;font-size:16px}.radio-container{display:flex;align-items:center;gap:10px}.radio-container input{flex:1}.btn-container{display:flex;gap:10px;margin-bottom:15px}button{flex:1;padding:12px;border:none;border-radius:6px;font-size:16px;font-weight:bold;cursor:pointer;transition:background 0.2s}.btn-activate{background-color:#4caf50;color:white}.btn-activate:hover{background-color:#43a047}.btn-stop{background-color:#f44336;color:white}.btn-stop:hover{background-color:#e53935}.btn-save{background-color:#ffb300;color:white}.btn-save:hover{background-color:#ffa000}.favorites{background:#f9f9f9;padding:10px;border-radius:6px;border:1px dashed #ccc}.fav-item{display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #eee;font-size:14px}.fav-item:last-child{border:none}
     </style>
 </head>
 <body>
-
 <div class="container">
     <h1>📍 GeoAlarma</h1>
     <div id="status" class="status-badge">Inactivo</div>
-
-    <!-- FORMULARIO MOVIL: Captura el envío de cualquier teclado (Siguiente, Ir, Buscar) -->
     <form id="search-form" class="control-group" action="#" onsubmit="return false;">
-        <input type="text" id="search" placeholder="Escribe una dirección y pulsa Ir o Siguiente..." enterkeyhint="search">
+        <input type="text" id="search" placeholder="Escribe dirección y pulsa Ir, Siguiente o Buscar..." enterkeyhint="search">
     </form>
-
-    <!-- El lienzo del mapa -->
     <div id="map"></div>
-
-    <p style="text-align: center; font-size: 14px; margin: 5px 0 15px 0; color: #666;">
-        Distancia al destino: <span id="distance-display" style="font-weight: bold;">--</span> metros
-    </p>
-
-    <div class="control-group">
-        <label>Definir radio de aviso:</label>
-        <div class="radio-container">
-            <!-- Valor por defecto fijado exactamente en 10 metros -->
-            <input type="number" id="radius" value="10" min="5">
-            <span>metros</span>
-        </div>
-    </div>
-
-    <div class="control-group">
-        <label for="reminder">Recordatorio al llegar:</label>
-        <input type="text" id="reminder" placeholder="Ej: Comprar leche, bajar en la próxima parada...">
-    </div>
-
-    <div class="btn-container">
-        <button class="btn-activate" id="btn-start">▶ Activar alarma</button>
-        <button class="btn-stop" id="btn-stop">⏹ Detener</button>
-        <button class="btn-save" id="btn-save">⭐ Guardar</button>
-    </div>
-
-    <div class="favorites">
-        <strong>Favoritos:</strong>
-        <div id="favorites-list">
-            <div style="color: #888; font-size: 12px; margin-top: 5px;">No tienes favoritos guardados aún.</div>
-        </div>
-    </div>
+    <p style="text-align: center; font-size: 14px; margin: 5px 0 15px 0; color: #666;">Distancia al destino: <span id="distance-display" style="font-weight: bold;">--</span> metros</p>
+    <div class="control-group"><label>Definir radio de aviso:</label><div class="radio-container"><input type="number" id="radius" value="10" min="5"><span>metros</span></div></div>
+    <div class="control-group"><label for="reminder">Recordatorio al llegar:</label><input type="text" id="reminder" placeholder="Ej: Comprar leche, bajar en la próxima parada..."></div>
+    <div class="btn-container"><button class="btn-activate" id="btn-start">▶ Activar alarma</button><button class="btn-stop" id="btn-stop">⏹ Detener</button><button class="btn-save" id="btn-save">⭐ Guardar</button></div>
+    <div class="favorites"><strong>Favoritos:</strong><div id="favorites-list"><div style="color: #888; font-size: 12px; margin-top: 5px;">No tienes favoritos guardados aún.</div></div></div>
 </div>
-
-<!-- 2. Cargamos el motor JavaScript de Leaflet de forma segura -->
+<!-- Motor JavaScript inyectado de forma segura y directa -->
 <script src="https://cloudflare.com"></script>
 <script>
     let map, userMarker, targetMarker, distanceCircle;
-    let userCoords = null;
-    let targetCoords = null;
-    let watchId = null;
-    let audioContext = null;
+    let userCoords = null, targetCoords = null, watchId = null, audioContext = null;
 
-    // Inicialización explícita del mapa
-    map = L.map('map').setView([40.416775, -3.703790], 13);
+    // Inicialización del motor de mapas centrado en una posición estándar
+    map = L.map('map', {zoomControl: false}).setView([40.416775, -3.703790], 13);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '© OpenStreetMap'
     }).addTo(map);
 
-    // ESCUDO CONTRA EL MAPA INVISIBLE: Obliga a re-renderizar las cuadrículas ante cualquier cambio visual
-    const resizeObserver = new ResizeObserver(() => {
-        if (map) { map.invalidateSize(); }
-    });
-    resizeObserver.observe(document.getElementById("map"));
+    // SISTEMA ANTIFALLOS AUTOMÁTICO: Obliga al mapa a expandirse visualmente en móviles sin importar el lag de carga
+    const autoRender = new ResizeObserver(() => { if (map) { map.invalidateSize(); } });
+    autoRender.observe(document.getElementById("map"));
+    window.addEventListener('load', () => { setTimeout(() => { map.invalidateSize(); }, 300); });
 
-    // Forzados redundantes de retardo para asegurar que cargue la interfaz en móviles lentos
-    window.addEventListener('load', () => {
-        setTimeout(() => { map.invalidateSize(); }, 200);
-        setTimeout(() => { map.invalidateSize(); }, 600);
-    });
-
-    // Detectar la ubicación en tiempo real del usuario
+    // Localizar posición real inmediata del teléfono móvil
     if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(position => {
             userCoords = [position.coords.latitude, position.coords.longitude];
             map.setView(userCoords, 16);
-            if (userMarker) {
-                userMarker.setLatLng(userCoords);
-            } else {
-                userMarker = L.marker(userCoords, {title: "Tu ubicación"}).addTo(map).bindPopup("Estás aquí").openPopup();
-            }
+            if (userMarker) { userMarker.setLatLng(userCoords); } 
+            else { userMarker = L.marker(userCoords, {title: "Tu ubicación"}).addTo(map).bindPopup("Estás aquí").openPopup(); }
             map.invalidateSize();
-        }, () => { console.log("Permiso de ubicación denegado."); });
+        });
     }
 
-    // LÓGICA DEL BUSCADOR: Captura la confirmación del formulario (Enter / Siguiente / Ir)
+    // RESOLUCIÓN AL BOTÓN DEL TECLADO: El evento 'submit' procesa cualquier acción (Ir, Siguiente, Buscar o Enviar)
     document.getElementById('search-form').addEventListener('submit', function(e) {
-        e.preventDefault(); 
-        
+        e.preventDefault();
         const query = document.getElementById('search').value.trim();
         if (!query) return;
 
@@ -166,38 +64,28 @@
             .then(res => res.json())
             .then(data => {
                 if (data && data.length > 0) {
-                    const lat = parseFloat(data.lat);
-                    const lon = parseFloat(data.lon);
+                    const lat = parseFloat(data[0].lat || data[0].latitude || data.lat);
+                    const lon = parseFloat(data[0].lon || data[0].longitude || data.lon);
                     targetCoords = [lat, lon];
-                    
                     map.setView(targetCoords, 16);
-                    
-                    if (targetMarker) {
-                        targetMarker.setLatLng(targetCoords);
-                    } else {
-                        targetMarker = L.marker(targetCoords, {color: 'red'}).addTo(map);
-                    }
-                    targetMarker.bindPopup(`<b>Destino:</b><br>${data.display_name}`).openPopup();
-                    
+                    if (targetMarker) { targetMarker.setLatLng(targetCoords); } 
+                    else { targetMarker = L.marker(targetCoords, {color: 'red'}).addTo(map); }
+                    targetMarker.bindPopup(`<b>Destino:</b><br>${data[0].display_name}`).openPopup();
                     actualizarCirculoYDistancia();
-                    document.getElementById('search').blur(); // Cierra el teclado en pantallas móviles
+                    document.getElementById('search').blur(); // Oculta el teclado virtual automáticamente
                 } else {
-                    alert("No se localizó la dirección. Prueba a especificar la ciudad o país.");
+                    alert("Dirección no encontrada. Intenta detallar la ciudad o calle.");
                 }
-            })
-            .catch(err => {
+            }).catch(err => {
                 console.error(err);
-                alert("Error de respuesta con el servidor de direcciones.");
+                alert("Error de conexión al buscar las coordenadas.");
             });
     });
-    // Clic directo sobre el plano del mapa
+    // Evento manual por toque directo en pantalla sobre el mapa
     map.on('click', function(e) {
         targetCoords = [e.latlng.lat, e.latlng.lng];
-        if (targetMarker) {
-            targetMarker.setLatLng(targetCoords).bindPopup("Destino seleccionado").openPopup();
-        } else {
-            targetMarker = L.marker(targetCoords, {color: 'red'}).addTo(map).bindPopup("Destino seleccionado").openPopup();
-        }
+        if (targetMarker) { targetMarker.setLatLng(targetCoords).bindPopup("Destino seleccionado").openPopup(); } 
+        else { targetMarker = L.marker(targetCoords, {color: 'red'}).addTo(map).bindPopup("Destino seleccionado").openPopup(); }
         actualizarCirculoYDistancia();
     });
 
@@ -216,42 +104,29 @@
     }
     document.getElementById('radius').addEventListener('input', actualizarCirculoYDistancia);
 
-    // Activación de Geolocalización en Background (Geofence)
+    // Monitoreo perimetral continuo en tiempo real (Geofencing)
     document.getElementById('btn-start').addEventListener('click', () => {
         if (!targetCoords) {
-            alert("Selecciona un destino pulsando en el mapa o buscándolo arriba.");
+            alert("Elige una ubicación usando el buscador o tocando directamente el mapa.");
             return;
         }
-
         document.getElementById('status').innerText = "🚨 Alarma Activa";
         document.getElementById('status').className = "status-badge active";
 
         watchId = navigator.geolocation.watchPosition(position => {
             userCoords = [position.coords.latitude, position.coords.longitude];
             if (userMarker) userMarker.setLatLng(userCoords);
-
             const dist = map.distance(userCoords, targetCoords);
             document.getElementById('distance-display').innerText = Math.round(dist);
-
             const alarmRadius = parseInt(document.getElementById('radius').value) || 10;
-
-            if (dist <= alarmRadius) {
-                activarAvisoAlarmante();
-            }
-        }, error => {
-            console.error(error);
-        }, {
-            enableHighAccuracy: true, maximumAge: 0, timeout: 5000
-        });
+            if (dist <= alarmRadius) { activarAvisoAlarmante(); }
+        }, error => { console.error(error); }, { enableHighAccuracy: true, maximumAge: 0, timeout: 5000 });
     });
 
     document.getElementById('btn-stop').addEventListener('click', detenerAlarma);
 
     function detenerAlarma() {
-        if (watchId) {
-            navigator.geolocation.clearWatch(watchId);
-            watchId = null;
-        }
+        if (watchId) { navigator.geolocation.clearWatch(watchId); watchId = null; }
         document.getElementById('status').innerText = "Inactivo";
         document.getElementById('status').className = "status-badge";
     }
@@ -259,14 +134,9 @@
     function activarAvisoAlarmante() {
         detenerAlarma();
         hacerSonarPitido();
-
         const mensajeRecordatorio = document.getElementById('reminder').value.trim();
-
-        if (mensajeRecordatorio !== "") {
-            alert("🚨 ¡HAS LLEGADO AL DESTINO!\n\n📌 Recordatorio: " + mensajeRecordatorio);
-        } else {
-            alert("🚨 ¡HAS LLEGADO AL DESTINO!");
-        }
+        if (mensajeRecordatorio !== "") { alert("🚨 ¡HAS LLEGADO AL DESTINO!\n\n📌 Recordatorio: " + mensajeRecordatorio); } 
+        else { alert("🚨 ¡HAS LLEGADO AL DESTINO!"); }
     }
 
     function hacerSonarPitido() {
@@ -274,31 +144,22 @@
             audioContext = new (window.AudioContext || window.webkitAudioContext)();
             let osc = audioContext.createOscillator();
             let gain = audioContext.createGain();
-            osc.connect(gain);
-            gain.connect(audioContext.destination);
-            osc.type = "sine";
-            osc.frequency.value = 880; 
-            osc.start();
-            setTimeout(() => osc.stop(), 2500); 
-        } catch(e) {
-            console.log("Audio retenido por restricciones del navegador.");
-        }
+            osc.connect(gain); gain.connect(audioContext.destination);
+            osc.type = "sine"; osc.frequency.value = 880; osc.start();
+            setTimeout(() => osc.stop(), 2500);
+        } catch(e) { console.log("Audio retenido por restricciones del navegador."); }
     }
 
-    // Gestión básica de favoritos en la sesión local
+    // Guardar favoritos
     document.getElementById('btn-save').addEventListener('click', () => {
-        if (!targetCoords) {
-            alert("Elige una ubicación antes de guardarla.");
-            return;
-        }
+        if (!targetCoords) { alert("Selecciona un destino antes de intentar guardarlo."); return; }
         const nombreFav = prompt("Escribe un nombre para guardar el favorito:", "Destino Guardado");
         if (nombreFav) {
             const list = document.getElementById('favorites-list');
             if (list.innerHTML.includes("No tienes favoritos")) list.innerHTML = "";
-            
             const item = document.createElement('div');
             item.className = 'fav-item';
-            item.innerHTML = `<span>⭐ ${nombreFav}</span> <small>${targetCoords.toFixed(4)}, ${targetCoords.toFixed(4)}</small>`;
+            item.innerHTML = `<span>⭐ ${nombreFav}</span> <small>${targetCoords[0].toFixed(4)}, ${targetCoords[1].toFixed(4)}</small>`;
             list.appendChild(item);
         }
     });
