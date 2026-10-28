@@ -1,578 +1,267 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <meta name="theme-color" content="#0f172a" />
-  <meta name="apple-mobile-web-app-capable" content="yes" />
-  <title>GeoAlarma – Alarma por ubicación</title>
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-  <style>
-    :root {
-      --bg: #0f172a;
-      --card: #1e293b;
-      --accent: #38bdf8;
-      --accent2: #22c55e;
-      --danger: #ef4444;
-      --text: #f1f5f9;
-      --muted: #94a3b8;
-    }
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      background: var(--bg);
-      color: var(--text);
-      height: 100dvh;
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-    }
-    header {
-      background: var(--card);
-      padding: 12px 16px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      border-bottom: 1px solid #334155;
-      flex-shrink: 0;
-    }
-    header h1 {
-      font-size: 1.15rem;
-      font-weight: 700;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-    header h1 span { color: var(--accent); }
-    #status {
-      font-size: 0.75rem;
-      color: var(--muted);
-      text-align: right;
-    }
-    #status.active { color: var(--accent2); }
-    #status.alarm { color: var(--danger); font-weight: 700; animation: pulse 0.6s infinite; }
-
-    #map {
-      flex: 1;
-      width: 100%;
-      min-height: 200px;
-      z-index: 1;
-    }
-
-    .panel {
-      background: var(--card);
-      padding: 14px 16px 20px;
-      border-top: 1px solid #334155;
-      flex-shrink: 0;
-      max-height: 48vh;
-      overflow-y: auto;
-    }
-
-    .row {
-      display: flex;
-      gap: 8px;
-      margin-bottom: 10px;
-      flex-wrap: wrap;
-    }
-    input, select, button {
-      font-size: 0.95rem;
-      border-radius: 10px;
-      border: none;
-      padding: 10px 14px;
-    }
-    input, select {
-      background: #0f172a;
-      color: var(--text);
-      border: 1px solid #475569;
-      flex: 1;
-      min-width: 0;
-    }
-    input:focus, select:focus {
-      outline: 2px solid var(--accent);
-      border-color: transparent;
-    }
-    button {
-      background: var(--accent);
-      color: #0f172a;
-      font-weight: 600;
-      cursor: pointer;
-      white-space: nowrap;
-      transition: transform 0.1s, opacity 0.15s;
-    }
-    button:active { transform: scale(0.97); }
-    button:disabled { opacity: 0.5; cursor: not-allowed; }
-    button.secondary { background: #475569; color: var(--text); }
-    button.success { background: var(--accent2); }
-    button.danger { background: var(--danger); color: white; }
-    button.ghost {
-      background: transparent;
-      color: var(--muted);
-      border: 1px solid #475569;
-    }
-
-    .info {
-      font-size: 0.85rem;
-      color: var(--muted);
-      margin-bottom: 10px;
-      line-height: 1.4;
-    }
-    .info strong { color: var(--text); }
-
-    .favorites {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 6px;
-      margin-top: 6px;
-    }
-    .fav-chip {
-      background: #334155;
-      color: var(--text);
-      padding: 6px 12px;
-      border-radius: 20px;
-      font-size: 0.8rem;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-    .fav-chip:hover { background: #475569; }
-    .fav-chip .del {
-      color: var(--danger);
-      font-weight: 700;
-      margin-left: 2px;
-    }
-
-    .distance-box {
-      background: #0f172a;
-      border-radius: 12px;
-      padding: 12px;
-      text-align: center;
-      margin-bottom: 12px;
-      border: 1px solid #334155;
-    }
-    .distance-box .value {
-      font-size: 1.8rem;
-      font-weight: 800;
-      color: var(--accent);
-    }
-    .distance-box .label { font-size: 0.8rem; color: var(--muted); }
-
-    .alarm-banner {
-      display: none;
-      background: var(--danger);
-      color: white;
-      text-align: center;
-      padding: 14px;
-      font-weight: 700;
-      font-size: 1.1rem;
-      animation: pulse 0.5s infinite;
-    }
-    .alarm-banner.show { display: block; }
-
-    @keyframes pulse {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.7; }
-    }
-
-    .coords {
-      font-family: ui-monospace, monospace;
-      font-size: 0.75rem;
-      color: var(--muted);
-      word-break: break-all;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GeoAlarma – Alarma por ubicación</title>
+    <!-- Estilos de Leaflet para el Mapa -->
+    <link rel="stylesheet" href="https://unpkg.com" />
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            padding: 15px;
+            background-color: #f5f5f7;
+            color: #333;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        h1 { text-align: center; margin-top: 0; font-size: 24px; }
+        .status-badge {
+            display: block;
+            text-align: center;
+            font-weight: bold;
+            padding: 8px;
+            background-color: #ffebee;
+            color: #c62828;
+            border-radius: 6px;
+            margin-bottom: 15px;
+        }
+        .status-badge.active { background-color: #e8f5e9; color: #2e7d32; }
+        #map { height: 300px; width: 100%; border-radius: 8px; margin-bottom: 15px; }
+        .control-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; font-size: 14px; }
+        input[type="text"], input[type="number"] {
+            width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; font-size: 16px;
+        }
+        .radio-container { display: flex; align-items: center; gap: 10px; }
+        .radio-container input { flex: 1; }
+        .btn-container { display: flex; gap: 10px; margin-bottom: 15px; }
+        button {
+            flex: 1; padding: 12px; border: none; border-radius: 6px; font-size: 16px; font-weight: bold; cursor: pointer; transition: background 0.2s;
+        }
+        .btn-activate { background-color: #4caf50; color: white; }
+        .btn-activate:hover { background-color: #43a047; }
+        .btn-stop { background-color: #f44336; color: white; }
+        .btn-stop:hover { background-color: #e53935; }
+        .btn-save { background-color: #ffb300; color: white; }
+        .btn-save:hover { background-color: #ffa000; }
+        .favorites { background: #f9f9f9; padding: 10px; border-radius: 6px; border: 1px dashed #ccc; }
+        .fav-item { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid #eee; font-size: 14px; }
+        .fav-item:last-child { border: none; }
+    </style>
 </head>
 <body>
-  <header>
-    <h1>📍 <span>GeoAlarma</span></h1>
-    <div id="status">Inactivo</div>
-  </header>
 
-  <div id="alarmBanner" class="alarm-banner">
-    🚨 ¡HAS LLEGADO AL DESTINO!
-  </div>
+<div class="container">
+    <h1>📍 GeoAlarma</h1>
+    <div id="status" class="status-badge">Inactivo</div>
 
-  <div id="map"></div>
-
-  <div class="panel">
-    <div class="distance-box" id="distanceBox" style="display:none">
-      <div class="value" id="distanceValue">—</div>
-      <div class="label">distancia al destino</div>
+    <div class="control-group">
+        <input type="text" id="search" placeholder="Buscar lugar o dirección...">
     </div>
 
-    <div class="info" id="helpText">
-      Toca el mapa para elegir el destino o usa un favorito. Luego define el radio y pulsa <strong>Activar alarma</strong>.
+    <div id="map"></div>
+
+    <p style="text-align: center; font-size: 14px; margin: 5px 0 15px 0; color: #666;">
+        Distancia al destino: <span id="distance-display" style="font-weight: bold;">--</span> metros
+    </p>
+
+    <div class="control-group">
+        <label>Definir radio de aviso:</label>
+        <div class="radio-container">
+            <input type="number" id="radius" value="150" min="10">
+            <span>metros</span>
+        </div>
     </div>
 
-    <div class="row">
-      <input type="text" id="searchInput" placeholder="Buscar lugar (ej: Plaza Mayor Madrid)" />
-      <button id="btnSearch" class="secondary">Buscar</button>
+    <!-- CAJA DE TEXTO LIBRE: Recordatorio -->
+    <div class="control-group">
+        <label for="reminder">Recordatorio al llegar:</label>
+        <input type="text" id="reminder" placeholder="Ej: Comprar leche, bajar en la próxima parada...">
     </div>
 
-    <div class="row">
-      <input type="number" id="radiusInput" value="150" min="20" max="5000" step="10" />
-      <span style="align-self:center;color:var(--muted);font-size:0.9rem">metros</span>
+    <div class="btn-container">
+        <button class="btn-activate" id="btn-start">▶ Activar alarma</button>
+        <button class="btn-stop" id="btn-stop">⏹ Detener</button>
+        <button class="btn-save" id="btn-save">⭐ Guardar</button>
     </div>
 
-    <div class="row">
-      <button id="btnActivate" class="success" disabled>▶ Activar alarma</button>
-      <button id="btnStop" class="danger" style="display:none">⏹ Detener</button>
-      <button id="btnSaveFav" class="ghost" disabled>⭐ Guardar</button>
+    <div class="favorites">
+        <strong>Favoritos:</strong>
+        <div id="favorites-list">
+            <div style="color: #888; font-size: 12px; margin-top: 5px;">No tienes favoritos guardados aún.</div>
+        </div>
     </div>
+</div>
 
-    <div id="favSection" style="display:none">
-      <div class="info" style="margin-bottom:4px">Favoritos:</div>
-      <div class="favorites" id="favoritesList"></div>
-    </div>
-
-    <div class="coords" id="coordsInfo" style="margin-top:10px"></div>
-  </div>
-
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script>
-    // ---------- Estado ----------
-    let map, userMarker, destMarker, radiusCircle;
-    let destLat = null, destLng = null;
-    let watching = false;
+<!-- Scripts de Leaflet para el Mapa -->
+<script src="https://unpkg.com"></script>
+<script>
+    // Variables globales
+    let map, userMarker, targetMarker, distanceCircle;
+    let userCoords = null;
+    let targetCoords = null;
     let watchId = null;
-    let alarmTriggered = false;
-    let audioCtx = null;
-    let oscillator = null;
-    let favorites = JSON.parse(localStorage.getItem("geoalarma_favs") || "[]");
+    let audioContext = null;
 
-    // ---------- Mapa ----------
-    function initMap() {
-      map = L.map("map", { zoomControl: true }).setView([40.4168, -3.7038], 13); // Madrid por defecto
+    // Inicializar el mapa centrado por defecto en Madrid
+    map = L.map('map').setView([40.416775, -3.703790], 13);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap'
+    }).addTo(map);
 
-      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-        attribution: "© OpenStreetMap",
-        maxZoom: 19
-      }).addTo(map);
-
-      // Marcador de usuario
-      userMarker = L.circleMarker([0, 0], {
-        radius: 8,
-        color: "#0ea5e9",
-        fillColor: "#38bdf8",
-        fillOpacity: 0.9,
-        weight: 3
-      }).addTo(map);
-
-      // Click en mapa → destino
-      map.on("click", (e) => {
-        setDestination(e.latlng.lat, e.latlng.lng, "Punto en mapa");
-      });
-
-      // Intentar centrar en ubicación actual
-      if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(
-          (pos) => {
-            const { latitude, longitude } = pos.coords;
-            map.setView([latitude, longitude], 15);
-            userMarker.setLatLng([latitude, longitude]);
-          },
-          () => {},
-          { enableHighAccuracy: true, timeout: 8000 }
-        );
-      }
-
-      renderFavorites();
+    // Obtener la ubicación real del usuario en tiempo real
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(position => {
+            userCoords = [position.coords.latitude, position.coords.longitude];
+            map.setView(userCoords, 15);
+            userMarker = L.marker(userCoords, {title: "Tu ubicación"}).addTo(map)
+                .bindPopup("Estás aquí").openPopup();
+        });
+    } else {
+        alert("La geolocalización no está soportada por tu navegador.");
     }
 
-    // ---------- Destino ----------
-    function setDestination(lat, lng, name = "Destino") {
-      destLat = lat;
-      destLng = lng;
-      alarmTriggered = false;
-
-      if (destMarker) map.removeLayer(destMarker);
-      if (radiusCircle) map.removeLayer(radiusCircle);
-
-      destMarker = L.marker([lat, lng], {
-        title: name,
-        draggable: true
-      }).addTo(map);
-
-      destMarker.on("dragend", (e) => {
-        const p = e.target.getLatLng();
-        destLat = p.lat;
-        destLng = p.lng;
-        updateRadiusCircle();
-        updateCoordsInfo();
-      });
-
-      updateRadiusCircle();
-      map.panTo([lat, lng]);
-
-      document.getElementById("btnActivate").disabled = false;
-      document.getElementById("btnSaveFav").disabled = false;
-      document.getElementById("helpText").innerHTML =
-        `Destino: <strong>${name}</strong>. Ajusta el radio y activa la alarma.`;
-      updateCoordsInfo();
-      document.getElementById("distanceBox").style.display = "block";
-    }
-
-    function updateRadiusCircle() {
-      if (radiusCircle) map.removeLayer(radiusCircle);
-      const r = parseFloat(document.getElementById("radiusInput").value) || 150;
-      radiusCircle = L.circle([destLat, destLng], {
-        radius: r,
-        color: "#22c55e",
-        fillColor: "#22c55e",
-        fillOpacity: 0.15,
-        weight: 2
-      }).addTo(map);
-    }
-
-    document.getElementById("radiusInput").addEventListener("input", () => {
-      if (destLat !== null) updateRadiusCircle();
-    });
-
-    // ---------- Búsqueda (Nominatim) ----------
-    document.getElementById("btnSearch").addEventListener("click", doSearch);
-    document.getElementById("searchInput").addEventListener("keydown", (e) => {
-      if (e.key === "Enter") doSearch();
-    });
-
-    async function doSearch() {
-      const q = document.getElementById("searchInput").value.trim();
-      if (!q) return;
-      const btn = document.getElementById("btnSearch");
-      btn.disabled = true;
-      btn.textContent = "…";
-      try {
-        const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&limit=1`;
-        const res = await fetch(url, { headers: { "Accept-Language": "es" } });
-        const data = await res.json();
-        if (data && data[0]) {
-          const lat = parseFloat(data[0].lat);
-          const lon = parseFloat(data[0].lon);
-          setDestination(lat, lon, data[0].display_name.split(",")[0]);
-          map.setView([lat, lon], 16);
+    // Evento al tocar el mapa para elegir el destino
+    map.on('click', function(e) {
+        targetCoords = [e.latlng.lat, e.latlng.lng];
+        
+        if (targetMarker) {
+            targetMarker.setLatLng(e.latlng);
         } else {
-          alert("No se encontró el lugar. Prueba con otro nombre.");
+            targetMarker = L.marker(targetCoords, {color: 'red'}).addTo(map)
+                .bindPopup("Destino seleccionado").openPopup();
         }
-      } catch (err) {
-        alert("Error al buscar. Comprueba la conexión.");
-      } finally {
-        btn.disabled = false;
-        btn.textContent = "Buscar";
-      }
-    }
 
-    // ---------- Favoritos ----------
-    function renderFavorites() {
-      const list = document.getElementById("favoritesList");
-      const section = document.getElementById("favSection");
-      if (favorites.length === 0) {
-        section.style.display = "none";
-        return;
-      }
-      section.style.display = "block";
-      list.innerHTML = "";
-      favorites.forEach((f, i) => {
-        const chip = document.createElement("div");
-        chip.className = "fav-chip";
-        chip.innerHTML = `${f.name} <span class="del" title="Eliminar">×</span>`;
-        chip.querySelector(".del").addEventListener("click", (e) => {
-          e.stopPropagation();
-          favorites.splice(i, 1);
-          localStorage.setItem("geoalarma_favs", JSON.stringify(favorites));
-          renderFavorites();
-        });
-        chip.addEventListener("click", () => {
-          setDestination(f.lat, f.lng, f.name);
-          map.setView([f.lat, f.lng], 16);
-        });
-        list.appendChild(chip);
-      });
-    }
-
-    document.getElementById("btnSaveFav").addEventListener("click", () => {
-      if (destLat === null) return;
-      const name = prompt("Nombre del favorito:", "Mi destino");
-      if (!name) return;
-      favorites.push({ name: name.trim(), lat: destLat, lng: destLng });
-      localStorage.setItem("geoalarma_favs", JSON.stringify(favorites));
-      renderFavorites();
+        actualizarCirculoYDistancia();
     });
 
-    // ---------- Geometría ----------
-    function haversine(lat1, lon1, lat2, lon2) {
-      const R = 6371000; // metros
-      const toRad = (d) => (d * Math.PI) / 180;
-      const dLat = toRad(lat2 - lat1);
-      const dLon = toRad(lon2 - lon1);
-      const a =
-        Math.sin(dLat / 2) ** 2 +
-        Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
-      return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    }
-
-    // ---------- Seguimiento ----------
-    function startWatching() {
-      if (!navigator.geolocation) {
-        alert("Tu navegador no soporta geolocalización.");
-        return;
-      }
-      if (destLat === null) {
-        alert("Primero elige un destino en el mapa.");
-        return;
-      }
-
-      watching = true;
-      alarmTriggered = false;
-      document.getElementById("btnActivate").style.display = "none";
-      document.getElementById("btnStop").style.display = "inline-block";
-      document.getElementById("status").textContent = "Vigilando…";
-      document.getElementById("status").className = "active";
-      document.getElementById("alarmBanner").classList.remove("show");
-
-      // Pedir permiso de notificaciones
-      if ("Notification" in window && Notification.permission === "default") {
-        Notification.requestPermission();
-      }
-
-      watchId = navigator.geolocation.watchPosition(
-        onPosition,
-        (err) => {
-          console.warn(err);
-          document.getElementById("status").textContent = "Error GPS: " + err.message;
-        },
-        {
-          enableHighAccuracy: true,
-          maximumAge: 3000,
-          timeout: 15000
+    // Dibujar el radio visual en el mapa y calcular la distancia inicial
+    function actualizarCirculoYDistancia() {
+        const radiusVal = parseInt(document.getElementById('radius').value) || 150;
+        
+        if (distanceCircle) map.removeLayer(distanceCircle);
+        if (targetCoords) {
+            distanceCircle = L.circle(targetCoords, {
+                color: '#4caf50',
+                fillColor: '#81c784',
+                fillOpacity: 0.2,
+                radius: radiusVal
+            }).addTo(map);
         }
-      );
+
+        if (userCoords && targetCoords) {
+            const dist = map.distance(userCoords, targetCoords);
+            document.getElementById('distance-display').innerText = Math.round(dist);
+        }
     }
 
-    function stopWatching() {
-      if (watchId !== null) {
-        navigator.geolocation.clearWatch(watchId);
-        watchId = null;
-      }
-      watching = false;
-      stopAlarmSound();
-      document.getElementById("btnActivate").style.display = "inline-block";
-      document.getElementById("btnStop").style.display = "none";
-      document.getElementById("status").textContent = "Inactivo";
-      document.getElementById("status").className = "";
-      document.getElementById("alarmBanner").classList.remove("show");
-    }
-
-    function onPosition(pos) {
-      const { latitude, longitude, accuracy } = pos.coords;
-      userMarker.setLatLng([latitude, longitude]);
-
-      if (destLat === null) return;
-
-      const dist = haversine(latitude, longitude, destLat, destLng);
-      const radius = parseFloat(document.getElementById("radiusInput").value) || 150;
-
-      // Actualizar UI
-      const distEl = document.getElementById("distanceValue");
-      if (dist < 1000) {
-        distEl.textContent = Math.round(dist) + " m";
-      } else {
-        distEl.textContent = (dist / 1000).toFixed(2) + " km";
-      }
-
-      updateCoordsInfo(latitude, longitude, accuracy, dist);
-
-      // ¿Dentro del radio?
-      if (dist <= radius && !alarmTriggered) {
-        triggerAlarm();
-      }
-    }
-
-    function updateCoordsInfo(lat, lng, acc, dist) {
-      const el = document.getElementById("coordsInfo");
-      let txt = "";
-      if (destLat !== null) {
-        txt += `Destino: ${destLat.toFixed(5)}, ${destLng.toFixed(5)}\n`;
-      }
-      if (lat !== undefined) {
-        txt += `Tú: ${lat.toFixed(5)}, ${lng.toFixed(5)} (±${Math.round(acc)} m)`;
-        if (dist !== undefined) txt += ` · ${Math.round(dist)} m`;
-      }
-      el.textContent = txt;
-    }
-
-    // ---------- Alarma ----------
-    function triggerAlarm() {
-      alarmTriggered = true;
-      document.getElementById("status").textContent = "¡LLEGADA!";
-      document.getElementById("status").className = "alarm";
-      document.getElementById("alarmBanner").classList.add("show");
-
-      // Vibración
-      if (navigator.vibrate) {
-        navigator.vibrate([400, 200, 400, 200, 600]);
-      }
-
-      // Notificación
-      if ("Notification" in window && Notification.permission === "granted") {
-        new Notification("GeoAlarma", {
-          body: "¡Has llegado al destino!",
-          icon: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📍</text></svg>"
-        });
-      }
-
-      // Sonido
-      playAlarmSound();
-    }
-
-    function playAlarmSound() {
-      try {
-        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        if (oscillator) return;
-
-        oscillator = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
-        oscillator.connect(gain);
-        gain.connect(audioCtx.destination);
-
-        oscillator.type = "square";
-        oscillator.frequency.value = 880;
-        gain.gain.value = 0.15;
-
-        oscillator.start();
-
-        // Patrón de pitidos
-        let on = true;
-        const interval = setInterval(() => {
-          if (!alarmTriggered) {
-            clearInterval(interval);
+    // Actualizar el círculo visual si cambia el input del radio
+    document.getElementById('radius').addEventListener('input', actualizarCirculoYDistancia);
+    // Activar Alarma
+    document.getElementById('btn-start').addEventListener('click', () => {
+        if (!targetCoords) {
+            alert("Por favor, toca primero el mapa para elegir tu destino.");
             return;
-          }
-          gain.gain.value = on ? 0.15 : 0;
-          on = !on;
-        }, 300);
+        }
 
-        // Parar automáticamente a los 20 s
-        setTimeout(() => {
-          if (alarmTriggered) stopAlarmSound();
-        }, 20000);
-      } catch (e) {
-        console.warn("Audio no disponible", e);
-      }
+        document.getElementById('status').innerText = "🚨 Alarma Activa";
+        document.getElementById('status').className = "status-badge active";
+
+        // Seguir la geolocalización continuamente en tiempo real
+        watchId = navigator.geolocation.watchPosition(position => {
+            userCoords = [position.coords.latitude, position.coords.longitude];
+            if (userMarker) userMarker.setLatLng(userCoords);
+
+            const dist = map.distance(userCoords, targetCoords);
+            document.getElementById('distance-display').innerText = Math.round(dist);
+
+            const alarmRadius = parseInt(document.getElementById('radius').value) || 150;
+
+            // Verificar si el usuario ha entrado en el perímetro
+            if (dist <= alarmRadius) {
+                activarAvisoAlarmante();
+            }
+        }, error => {
+            console.error(error);
+        }, {
+            enableHighAccuracy: true,
+            maximumAge: 0,
+            timeout: 5000
+        });
+    });
+
+    // Detener el rastreo de la alarma
+    document.getElementById('btn-stop').addEventListener('click', () => {
+        detenerAlarma();
+    });
+
+    function detenerAlarma() {
+        if (watchId) {
+            navigator.geolocation.clearWatch(watchId);
+            watchId = null;
+        }
+        document.getElementById('status').innerText = "Inactivo";
+        document.getElementById('status').className = "status-badge";
     }
 
-    function stopAlarmSound() {
-      if (oscillator) {
-        try { oscillator.stop(); } catch (_) {}
-        oscillator = null;
-      }
-      alarmTriggered = false;
+    // Alerta que se activa al llegar al destino incorporando el Recordatorio
+    function activarAvisoAlarmante() {
+        detenerAlarma();
+        hacerSonarPitido();
+
+        // Captura el valor introducido en el input libre de recordatorio
+        const mensajeRecordatorio = document.getElementById('reminder').value.trim();
+
+        // Muestra la alerta condicional
+        if (mensajeRecordatorio !== "") {
+            alert("🚨 ¡HAS LLEGADO AL DESTINO!\n\n📌 Recordatorio: " + mensajeRecordatorio);
+        } else {
+            alert("🚨 ¡HAS LLEGADO AL DESTINO!");
+        }
     }
 
-    // ---------- Botones ----------
-    document.getElementById("btnActivate").addEventListener("click", startWatching);
-    document.getElementById("btnStop").addEventListener("click", stopWatching);
+    // Generador de sonido sintético (Beep) para la alerta
+    function hacerSonarPitido() {
+        try {
+            audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            let osc = audioContext.createOscillator();
+            let gain = audioContext.createGain();
+            osc.connect(gain);
+            gain.connect(audioContext.destination);
+            osc.type = "sine";
+            osc.frequency.value = 880; 
+            osc.start();
+            setTimeout(() => osc.stop(), 2500); 
+        } catch(e) {
+            console.log("El navegador bloqueó el audio automático.");
+        }
+    }
 
-    // ---------- Inicio ----------
-    initMap();
-  </script>
+    // Guardar en favoritos básico
+    document.getElementById('btn-save').addEventListener('click', () => {
+        if (!targetCoords) {
+            alert("Elige una ubicación en el mapa antes de guardar.");
+            return;
+        }
+        const nombreFav = prompt("Asigna un nombre a este favorito:", "Mi Destino");
+        if (nombreFav) {
+            const list = document.getElementById('favorites-list');
+            if (list.innerHTML.includes("No tienes favoritos")) list.innerHTML = "";
+            
+            const item = document.createElement('div');
+            item.className = 'fav-item';
+            item.innerHTML = `<span>⭐ ${nombreFav}</span> <small>${targetCoords[0].toFixed(4)}, ${targetCoords[1].toFixed(4)}</small>`;
+            list.appendChild(item);
+        }
+    });
+</script>
 </body>
 </html>
