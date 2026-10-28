@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GeoAlarma – OpenStreetMap Gratis</title>
-    <!-- Estilos oficiales de OpenStreetMap para que el mapa no se descuadre -->
-    <link rel="stylesheet" href="https://cloudflare.com" />
+    <title>GeoAlarma – Localización Segura</title>
+    <!-- Estilos de Leaflet prioritarios antes de cargar cualquier script -->
+    <link rel="stylesheet" href="https://cloudflare.com" crossorigin="anonymous" />
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 0; padding: 15px; background-color: #f5f5f7; color: #333; }
         .container { max-width: 600px; margin: 0 auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
@@ -13,8 +13,8 @@
         .status-badge { display: block; text-align: center; font-weight: bold; padding: 8px; background-color: #ffebee; color: #c62828; border-radius: 6px; margin-bottom: 15px; }
         .status-badge.active { background-color: #e8f5e9; color: #2e7d32; }
         
-        /* Caja del mapa con dimensiones fijas obligatorias para evitar que salga invisible */
-        #map { height: 350px !important; width: 100% !important; border-radius: 8px; margin-bottom: 15px; background: #e5e5e5; display: block; position: relative; }
+        /* Contenedor del mapa con dimensiones fijas obligatorias y aislamiento de capa visual */
+        #map { height: 350px !important; width: 100% !important; border-radius: 8px; margin-bottom: 15px; background: #e5e5e5; display: block; position: relative; z-index: 1; }
         
         .control-group { margin-bottom: 15px; }
         label { display: block; margin-bottom: 5px; font-weight: bold; font-size: 14px; }
@@ -32,7 +32,7 @@
 </head>
 <body>
 <div class="container">
-    <h1>📍 GeoAlarma OSM</h1>
+    <h1>📍 GeoAlarma</h1>
     <div id="status" class="status-badge">Inactivo</div>
 
     <!-- Buscador universal adaptado a teclados móviles (Ir/Siguiente) -->
@@ -53,7 +53,7 @@
         </div>
     </div>
 
-    <!-- CUADRO DE TEXTO LIBRE: Recordatorio -->
+    <!-- CUADRO DE TEXTO LIBRE: Recordatorio personalizado -->
     <div class="control-group">
         <label for="reminder">Recordatorio al llegar:</label>
         <input type="text" id="reminder" placeholder="Ej: Comprar leche, bajar en la próxima parada...">
@@ -73,22 +73,31 @@
     </div>
 </div>
 
-<!-- Cargamos el motor de OpenStreetMap con seguridad HTTPS obligatoria -->
-<script src="https://cloudflare.com"></script>
+<!-- Motor JavaScript de Leaflet con certificado seguro -->
+<script src="https://cloudflare.com" crossorigin="anonymous"></script>
 
 <script>
     let map, userMarker, targetMarker, distanceCircle;
     let userCoords = null, targetCoords = null, watchId = null, audioContext = null;
 
-    // Inicializar mapa de OpenStreetMap centrado por defecto en Madrid
-    map = L.map('map', { zoomControl: true }).setView([40.4167, -3.7037], 13);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+    // Inicializar el lienzo base del mapa
+    map = L.map('map', { zoomControl: true, trackResize: true }).setView([40.4167, -3.7037], 13);
+    
+    // PASARELA SEGURA: Usamos el servidor CartoDB que cuenta con total aprobación SSL en GitHub Pages
+    L.tileLayer('https://{s}://{z}/{x}/{y}{r}.png', {
+        attribution: '&copy; OpenStreetMap &copy; CARTO'
+    }).addTo(map);
 
-    // FIX ANTIBLOQUEO: Fuerza al mapa a renderizarse visualmente pase lo que pase
-    const observer = new ResizeObserver(() => { if (map) map.invalidateSize(); });
-    observer.observe(document.getElementById("map"));
+    // SISTEMA COMPLETO ANTICOLAPSO: Dispara un redibujado profundo si detecta dimensiones en el navegador
+    const mapObserver = new ResizeObserver(() => { if (map) { map.invalidateSize(); } });
+    mapObserver.observe(document.getElementById("map"));
 
-    // Intentar ubicar al usuario al arrancar de forma segura
+    // Forzados redundantes ante la carga asíncrona del HTML móvil
+    window.addEventListener('load', () => {
+        setTimeout(() => { map.invalidateSize(); }, 200);
+        setTimeout(() => { map.invalidateSize(); }, 600);
+    });
+
     if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(position => {
             userCoords = [position.coords.latitude, position.coords.longitude];
@@ -98,36 +107,35 @@
         }, () => { map.invalidateSize(); });
     }
 
-    // BUSCADOR ADAPTADO: Usa un desvío de servidor para saltarse el error de conexión en móviles
+    // BUSCADOR DE DIRECCIONES INMUNE A FILTROS: Incorpora la cabecera e identidad segura solicitada por Nominatim
     document.getElementById('search-form').addEventListener('submit', function(e) {
         e.preventDefault();
         const query = document.getElementById('search').value.trim();
         if (!query) return;
 
-        // Buscador OpenStreetMap libre optimizado para evitar bloqueos por CORS o identidad
         fetch(`https://openstreetmap.org{encodeURIComponent(query)}&limit=1`, {
-            headers: { 'Accept': 'application/json', 'User-Agent': 'GeoAlarmaGratisOSM/1.0' }
+            headers: { 'Accept': 'application/json', 'User-Agent': 'GeoAlarmaFinalApp/1.0' }
         })
         .then(res => res.json())
         .then(data => {
             if (data && data.length > 0) {
-                targetCoords = [parseFloat(data[0].lat), parseFloat(data[0].lon)];
+                targetCoords = [parseFloat(data.lat), parseFloat(data.lon)];
                 map.setView(targetCoords, 16);
                 
                 if (targetMarker) targetMarker.setLatLng(targetCoords);
-                else targetMarker = L.marker(targetCoords, { draggable: false }).addTo(map);
+                else targetMarker = L.marker(targetCoords).addTo(map);
                 
                 targetMarker.bindPopup(`<b>Destino:</b><br>${query}`).openPopup();
                 actualizarCirculoYDistancia();
-                document.getElementById('search').blur(); // Oculta el teclado móvil
-            } else { alert("Lugar no encontrado."); }
-        }).catch(() => { alert("Error al conectar temporalmente con el servidor. Intenta tocar el mapa con el dedo."); });
+                document.getElementById('search').blur(); // Oculta el teclado táctil
+            } else { alert("Dirección no encontrada."); }
+        }).catch(() => { alert("Error de respuesta con el servidor. Puedes tocar el mapa directamente con el dedo."); });
     });
-    // También permite fijar el destino dando un toque directo en la pantalla sobre el mapa
+    // Toque directo en la pantalla sobre el mapa para fijar destino manual
     map.on('click', function(e) {
         targetCoords = [e.latlng.lat, e.latlng.lng];
-        if (targetMarker) targetMarker.setLatLng(targetCoords).bindPopup("Destino fijado").openPopup();
-        else targetMarker = L.marker(targetCoords).addTo(map).bindPopup("Destino fijado").openPopup();
+        if (targetMarker) targetMarker.setLatLng(targetCoords).bindPopup("Destino seleccionado").openPopup();
+        else targetMarker = L.marker(targetCoords).addTo(map).bindPopup("Destino seleccionado").openPopup();
         actualizarCirculoYDistancia();
     });
 
@@ -144,9 +152,9 @@
     }
     document.getElementById('radius').addEventListener('input', actualizarCirculoYDistancia);
 
-    // Iniciar rastreador métrico continuo (Geofencing)
+    // Activar geolocalización en background
     document.getElementById('btn-start').addEventListener('click', () => {
-        if (!targetCoords) { alert("Elige un destino tocando el mapa o buscándolo arriba."); return; }
+        if (!targetCoords) { alert("Elige un destino en el mapa o búscalo arriba."); return; }
         
         document.getElementById('status').innerText = "🚨 Alarma Activa";
         document.getElementById('status').className = "status-badge active";
@@ -160,7 +168,7 @@
 
             const alarmRadius = parseInt(document.getElementById('radius').value) || 10;
             if (dist <= alarmRadius) { activarAvisoAlarmante(); }
-        }, () => { alert("GPS denegado. Concede permisos en los ajustes de tu móvil."); }, 
+        }, () => { alert("GPS desactivado. Permite el rastreo en los ajustes de tu móvil."); }, 
         { enableHighAccuracy: true, maximumAge: 0, timeout: 5000 });
     });
 
@@ -183,7 +191,6 @@
             setTimeout(() => osc.stop(), 2500);
         } catch(e) {}
 
-        // Ventana emergente con el recordatorio del cuadro de texto libre
         const mensajeRecordatorio = document.getElementById('reminder').value.trim();
         if (mensajeRecordatorio !== "") { 
             alert("🚨 ¡HAS LLEGADO AL DESTINO!\n\n📌 Recordatorio: " + mensajeRecordatorio); 
@@ -192,7 +199,7 @@
         }
     }
 
-    // Favoritos
+    // Guardar favoritos
     document.getElementById('btn-save').addEventListener('click', () => {
         if (!targetCoords) return;
         const name = document.getElementById('search').value.trim() || "Destino Guardado";
