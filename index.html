@@ -4,8 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>GeoAlarma – Alarma por ubicación</title>
-    <!-- Estilos oficiales de Leaflet para renderizar el mapa correctamente -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <!-- Estilos de Leaflet para el Mapa -->
+    <link rel="stylesheet" href="https://unpkg.com" />
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
@@ -34,8 +34,6 @@
             margin-bottom: 15px;
         }
         .status-badge.active { background-color: #e8f5e9; color: #2e7d32; }
-        
-        /* Contenedor del mapa con dimensiones fijas obligatorias */
         #map { 
             height: 320px !important; 
             width: 100% !important; 
@@ -43,7 +41,6 @@
             margin-bottom: 15px; 
             background: #e0e0e0;
         }
-        
         .control-group { margin-bottom: 15px; }
         label { display: block; margin-bottom: 5px; font-weight: bold; font-size: 14px; }
         input[type="text"], input[type="number"] {
@@ -72,11 +69,11 @@
     <h1>📍 GeoAlarma</h1>
     <div id="status" class="status-badge">Inactivo</div>
 
+    <!-- Buscador de direcciones (Pulsa Enter para buscar) -->
     <div class="control-group">
-        <input type="text" id="search" placeholder="Buscar lugar o dirección...">
+        <input type="text" id="search" placeholder="Escribe una dirección y pulsa Enter...">
     </div>
 
-    <!-- Div donde se inyectará el mapa -->
     <div id="map"></div>
 
     <p style="text-align: center; font-size: 14px; margin: 5px 0 15px 0; color: #666;">
@@ -86,12 +83,12 @@
     <div class="control-group">
         <label>Definir radio de aviso:</label>
         <div class="radio-container">
-            <input type="number" id="radius" value="150" min="10">
+            <!-- SE CAMBIA EL RADIO POR DEFECTO A 10 METROS -->
+            <input type="number" id="radius" value="10" min="5">
             <span>metros</span>
         </div>
     </div>
 
-    <!-- CAJA DE TEXTO LIBRE: Recordatorio -->
     <div class="control-group">
         <label for="reminder">Recordatorio al llegar:</label>
         <input type="text" id="reminder" placeholder="Ej: Comprar leche, bajar en la próxima parada...">
@@ -111,10 +108,9 @@
     </div>
 </div>
 
-<!-- Scripts obligatorios de Leaflet -->
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<!-- Scripts de Leaflet para el Mapa -->
+<script src="https://unpkg.com"></script>
 <script>
-    // Variables globales
     let map, userMarker, targetMarker, distanceCircle;
     let userCoords = null;
     let targetCoords = null;
@@ -127,73 +123,93 @@
         attribution: '© OpenStreetMap'
     }).addTo(map);
 
-    // SOLUCIÓN FIX: Forzar al mapa a recalcular sus dimensiones físicas reales
-    map.whenReady(() => {
-        setTimeout(() => {
-            map.invalidateSize();
-        }, 300);
-    });
+    // Ajuste de renderizado automático
+    map.whenReady(() => { setTimeout(() => { map.invalidateSize(); }, 300); });
 
-    // Obtener la ubicación real del usuario en tiempo real
+    // Obtener la ubicación real del usuario
     if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(position => {
             userCoords = [position.coords.latitude, position.coords.longitude];
             map.setView(userCoords, 15);
             userMarker = L.marker(userCoords, {title: "Tu ubicación"}).addTo(map)
                 .bindPopup("Estás aquí").openPopup();
-            map.invalidateSize(); // Reajuste tras cargar coordenadas
+            map.invalidateSize();
         });
-    } else {
-        alert("La geolocalización no está soportada por tu navegador.");
     }
 
-    // Evento al tocar el mapa para elegir el destino
+    // LÓGICA DEL BUSCADOR: Consultar dirección a la API Nominatim de OpenStreetMap al pulsar Enter
+    document.getElementById('search').addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            const query = this.value.trim();
+            if (!query) return;
+
+            fetch(`https://openstreetmap.org{encodeURIComponent(query)}&limit=1`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data && data.length > 0) {
+                        const lat = parseFloat(data[0].lat);
+                        const lon = parseFloat(data[0].lon);
+                        targetCoords = [lat, lon];
+                        
+                        // Centrar mapa en la dirección encontrada
+                        map.setView(targetCoords, 16);
+                        
+                        // Colocar o mover marcador de destino
+                        if (targetMarker) {
+                            targetMarker.setLatLng(targetCoords);
+                        } else {
+                            targetMarker = L.marker(targetCoords, {color: 'red'}).addTo(map);
+                        }
+                        targetMarker.bindPopup(`<b>Destino:</b><br>${data[0].display_name}`).openPopup();
+                        
+                        actualizarCirculoYDistancia();
+                    } else {
+                        alert("No se encontró ningún lugar con esa dirección. Prueba a ser más específico.");
+                    }
+                })
+                .catch(err => {
+                    console.error("Error en la búsqueda:", err);
+                    alert("Ocurrió un error al buscar la dirección.");
+                });
+        }
+    });
+
+    // Evento manual al hacer clic directamente sobre el mapa
     map.on('click', function(e) {
         targetCoords = [e.latlng.lat, e.latlng.lng];
-        
         if (targetMarker) {
-            targetMarker.setLatLng(e.latlng);
+            targetMarker.setLatLng(e.latlng).bindPopup("Destino seleccionado").openPopup();
         } else {
-            targetMarker = L.marker(targetCoords, {color: 'red'}).addTo(map)
-                .bindPopup("Destino seleccionado").openPopup();
+            targetMarker = L.marker(targetCoords, {color: 'red'}).addTo(map).bindPopup("Destino seleccionado").openPopup();
         }
-
         actualizarCirculoYDistancia();
     });
 
-    // Dibujar el radio visual en el mapa y calcular la distancia inicial
     function actualizarCirculoYDistancia() {
-        const radiusVal = parseInt(document.getElementById('radius').value) || 150;
-        
+        const radiusVal = parseInt(document.getElementById('radius').value) || 10;
         if (distanceCircle) map.removeLayer(distanceCircle);
         if (targetCoords) {
             distanceCircle = L.circle(targetCoords, {
-                color: '#4caf50',
-                fillColor: '#81c784',
-                fillOpacity: 0.2,
-                radius: radiusVal
+                color: '#4caf50', fillColor: '#81c784', fillOpacity: 0.2, radius: radiusVal
             }).addTo(map);
         }
-
         if (userCoords && targetCoords) {
             const dist = map.distance(userCoords, targetCoords);
             document.getElementById('distance-display').innerText = Math.round(dist);
         }
     }
-
-    // Actualizar el círculo visual si cambia el input del radio
     document.getElementById('radius').addEventListener('input', actualizarCirculoYDistancia);
-    // Activar Alarma
+    // Activar Alarma Geofence
     document.getElementById('btn-start').addEventListener('click', () => {
         if (!targetCoords) {
-            alert("Por favor, toca primero el mapa para elegir tu destino.");
+            alert("Por favor, selecciona un destino en el mapa o búscalo en la barra superior.");
             return;
         }
 
         document.getElementById('status').innerText = "🚨 Alarma Activa";
         document.getElementById('status').className = "status-badge active";
 
-        // Seguir la geolocalización continuamente en tiempo real
         watchId = navigator.geolocation.watchPosition(position => {
             userCoords = [position.coords.latitude, position.coords.longitude];
             if (userMarker) userMarker.setLatLng(userCoords);
@@ -201,25 +217,19 @@
             const dist = map.distance(userCoords, targetCoords);
             document.getElementById('distance-display').innerText = Math.round(dist);
 
-            const alarmRadius = parseInt(document.getElementById('radius').value) || 150;
+            const alarmRadius = parseInt(document.getElementById('radius').value) || 10;
 
-            // Verificar si el usuario ha entrado en el perímetro
             if (dist <= alarmRadius) {
                 activarAvisoAlarmante();
             }
         }, error => {
             console.error(error);
         }, {
-            enableHighAccuracy: true,
-            maximumAge: 0,
-            timeout: 5000
+            enableHighAccuracy: true, maximumAge: 0, timeout: 5000
         });
     });
 
-    // Detener el rastreo de la alarma
-    document.getElementById('btn-stop').addEventListener('click', () => {
-        detenerAlarma();
-    });
+    document.getElementById('btn-stop').addEventListener('click', detenerAlarma);
 
     function detenerAlarma() {
         if (watchId) {
@@ -230,15 +240,12 @@
         document.getElementById('status').className = "status-badge";
     }
 
-    // Alerta que se activa al llegar al destino incorporando el Recordatorio
     function activarAvisoAlarmante() {
         detenerAlarma();
         hacerSonarPitido();
 
-        // Captura el valor introducido en el input libre de recordatorio
         const mensajeRecordatorio = document.getElementById('reminder').value.trim();
 
-        // Muestra la alerta condicional
         if (mensajeRecordatorio !== "") {
             alert("🚨 ¡HAS LLEGADO AL DESTINO!\n\n📌 Recordatorio: " + mensajeRecordatorio);
         } else {
@@ -246,7 +253,6 @@
         }
     }
 
-    // Generador de sonido sintético (Beep) para la alerta
     function hacerSonarPitido() {
         try {
             audioContext = new (window.AudioContext || window.webkitAudioContext)();
@@ -259,14 +265,14 @@
             osc.start();
             setTimeout(() => osc.stop(), 2500); 
         } catch(e) {
-            console.log("El navegador bloqueó el audio automático.");
+            console.log("Audio bloqueado por directiva de autoplay.");
         }
     }
 
     // Guardar en favoritos básico
     document.getElementById('btn-save').addEventListener('click', () => {
         if (!targetCoords) {
-            alert("Elige una ubicación en el mapa antes de guardar.");
+            alert("Elige una ubicación antes de guardar.");
             return;
         }
         const nombreFav = prompt("Asigna un nombre a este favorito:", "Mi Destino");
