@@ -32,15 +32,15 @@
 </head>
 <body>
 <div class="container">
-    <h1>📍 GeoAlarm</h1>
+    <h1>📍 GeoAlarma</h1>
     <div id="status" class="status-badge">Inactivo</div>
 
-    <!-- Buscador Universal (Soporta Ir / Siguiente de teclados virtuales móviles) -->
+    <!-- Buscador Universal con Encabezado Seguro -->
     <form id="search-form" class="control-group" action="#" onsubmit="return false;">
-        <input type="text" id="search" placeholder="Escribe el destino (ej: Madrid o Calle Mayor)..." enterkeyhint="search">
+        <input type="text" id="search" placeholder="Escribe el destino (ej: Madrid, Barcelona)..." enterkeyhint="search">
     </form>
 
-    <!-- Radar Gráfico e Informativo en tiempo real -->
+    <!-- Radar Informativo en tiempo real -->
     <div class="radar-box">
         <canvas id="radar-canvas"></canvas>
         <div class="radar-info">
@@ -83,7 +83,6 @@
     let audioContext = null;
     let canvas, ctx, animationFrame;
 
-    // Inicializar el lienzo del radar nativo
     window.addEventListener('load', () => {
         canvas = document.getElementById('radar-canvas');
         ctx = canvas.getContext('2d');
@@ -99,7 +98,6 @@
     }
     window.addEventListener('resize', ajustarCanvas);
 
-    // Animación visual del barrido del radar
     function dibujarRadar(angulo) {
         if (!ctx || !canvas) return;
         ctx.fillStyle = 'rgba(17, 17, 17, 0.15)';
@@ -126,7 +124,7 @@
         animationFrame = requestAnimationFrame(() => dibujarRadar((angulo + 2) % 360));
     }
 
-    // LÓGICA DEL BUSCADOR: Funciona con el botón Siguiente, Ir o Enter de cualquier teclado móvil
+    // CORRECCIÓN DE PETICIÓN: Añade la cabecera User-Agent requerida para evitar errores de conexión (CORS/403)
     document.getElementById('search-form').addEventListener('submit', function(e) {
         e.preventDefault();
         const query = document.getElementById('search').value.trim();
@@ -134,27 +132,44 @@
 
         document.getElementById('target-name').innerText = "Buscando...";
         
-        fetch(`https://openstreetmap.org{encodeURIComponent(query)}&limit=1`)
-            .then(res => res.json())
-            .then(data => {
-                if (data && data.length > 0) {
-                    targetCoords = { lat: parseFloat(data[0].lat), lon: parseFloat(data[0].lon) };
-                    document.getElementById('target-name').innerText = query;
-                    calcularYMostrarDistancia();
-                } else {
-                    alert("No se localizó ese destino. Intenta detallar la ciudad.");
-                    document.getElementById('target-name').innerText = "Ninguno";
-                }
-            }).catch(() => {
-                alert("Error de conexión al buscar las coordenadas.");
+        fetch(`https://openstreetmap.org{encodeURIComponent(query)}&limit=1`, {
+            headers: {
+                'User-Agent': 'GeoAlarmaPersonalApp/1.0 (contact: githubpages)'
+            }
+        })
+        .then(res => {
+            if (!res.ok) throw new Error("Respuesta de red denegada");
+            return res.json();
+        })
+        .then(data => {
+            if (data && data.length > 0) {
+                targetCoords = { lat: parseFloat(data[0].lat), lon: parseFloat(data[0].lon) };
+                document.getElementById('target-name').innerText = query;
+                calcularYMostrarDistancia();
+            } else {
+                alert("No se localizó ese destino. Prueba con una ciudad cercana.");
                 document.getElementById('target-name').innerText = "Ninguno";
-            });
+            }
+        }).catch(err => {
+            console.error(err);
+            // Plan de contingencia por coordenadas manuales si falla la red
+            let manual = prompt("Error de red con el servidor de mapas. Si conoces las coordenadas, colócalas (Latitud, Longitud):", "40.4167, -3.7037");
+            if (manual) {
+                let partes = manual.split(",");
+                if (partes.length === 2) {
+                    targetCoords = { lat: parseFloat(partes[0].trim()), lon: parseFloat(partes[1].trim()) };
+                    document.getElementById('target-name').innerText = "Coordenadas manuales";
+                    calcularYMostrarDistancia();
+                }
+            } else {
+                document.getElementById('target-name').innerText = "Ninguno";
+            }
+        });
             
-        document.getElementById('search').blur(); // Oculta el teclado táctil
+        document.getElementById('search').blur();
     });
-    // Ecuación matemática pura Haversine para calcular distancias en metros (Sin APIs externas)
     function calcularDistancia(lat1, lon1, lat2, lon2) {
-        const R = 6371e3; // Radio de la Tierra en metros
+        const R = 6371e3; 
         const p1 = lat1 * Math.PI / 180;
         const p2 = lat2 * Math.PI / 180;
         const dPhi = (lat2 - lat1) * Math.PI / 180;
@@ -169,20 +184,14 @@
             navigator.geolocation.getCurrentPosition(position => {
                 userCoords = { lat: position.coords.latitude, lon: position.coords.longitude };
                 const metros = calcularDistancia(userCoords.lat, userCoords.lon, targetCoords.lat, targetCoords.lon);
-                
-                if (metros >= 1000) {
-                    document.getElementById('dist-val').innerText = (metros / 1000).toFixed(2) + " km";
-                } else {
-                    document.getElementById('dist-val').innerText = Math.round(metros) + " m";
-                }
+                if (metros >= 1000) { document.getElementById('dist-val').innerText = (metros / 1000).toFixed(2) + " km"; } 
+                else { document.getElementById('dist-val').innerText = Math.round(metros) + " m"; }
             });
         }
     }
 
-    // Activación del rastreador perimetral de la alarma
     document.getElementById('btn-start').addEventListener('click', () => {
-        if (!targetCoords) { alert("Primero escribe un destino en el buscador de arriba."); return; }
-        
+        if (!targetCoords) { alert("Primero busca o define un destino en la caja de arriba."); return; }
         document.getElementById('status').innerText = "🚨 Alarma Activa";
         document.getElementById('status').className = "status-badge active";
 
@@ -196,7 +205,7 @@
             const alarmRadius = parseInt(document.getElementById('radius').value) || 10;
             if (metros <= alarmRadius) { activarAvisoAlarmante(); }
         }, () => {
-            alert("Por favor, concede permisos de GPS en los ajustes de tu móvil.");
+            alert("Activa el GPS de tu teléfono móvil y concede permisos de ubicación.");
         }, { enableHighAccuracy: true, maximumAge: 0, timeout: 5000 });
     });
 
@@ -210,8 +219,6 @@
 
     function activarAvisoAlarmante() {
         detenerAlarma();
-        
-        // Generador de pitido nativo
         try {
             audioContext = new (window.AudioContext || window.webkitAudioContext)();
             let osc = audioContext.createOscillator();
@@ -221,16 +228,11 @@
             setTimeout(() => osc.stop(), 2500);
         } catch(e) {}
 
-        // Ventana emergente con el recordatorio del cuadro de texto libre
         const mensajeRecordatorio = document.getElementById('reminder').value.trim();
-        if (mensajeRecordatorio !== "") { 
-            alert("🚨 ¡HAS LLEGADO AL DESTINO!\n\n📌 Recordatorio: " + mensajeRecordatorio); 
-        } else { 
-            alert("🚨 ¡HAS LLEGADO AL DESTINO!"); 
-        }
+        if (mensajeRecordatorio !== "") { alert("🚨 ¡HAS LLEGADO AL DESTINO!\n\n📌 Recordatorio: " + mensajeRecordatorio); } 
+        else { alert("🚨 ¡HAS LLEGADO AL DESTINO!"); }
     }
 
-    // Favoritos
     document.getElementById('btn-save').addEventListener('click', () => {
         if (!targetCoords) return;
         const name = document.getElementById('search').value.trim() || "Destino";
@@ -240,7 +242,6 @@
         item.className = 'fav-item';
         item.innerHTML = `<span>⭐ ${name}</span>`;
         
-        // Al tocar un favorito se vuelve a programar automáticamente
         let guardadas = { ...targetCoords };
         item.onclick = () => {
             targetCoords = guardadas;
