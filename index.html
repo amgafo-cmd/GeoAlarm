@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>GeoAlarma – Alarma por ubicación</title>
-    <!-- Estilos de Leaflet para el Mapa -->
+    <!-- Estilos oficiales de Leaflet -->
     <link rel="stylesheet" href="https://unpkg.com" />
     <style>
         body {
@@ -34,13 +34,17 @@
             margin-bottom: 15px;
         }
         .status-badge.active { background-color: #e8f5e9; color: #2e7d32; }
+        
+        /* Contenedor del mapa con dimensiones fijas obligatorias */
         #map { 
-            height: 320px !important; 
+            height: 350px !important; 
             width: 100% !important; 
             border-radius: 8px; 
             margin-bottom: 15px; 
             background: #e0e0e0;
+            position: relative;
         }
+        
         .control-group { margin-bottom: 15px; }
         label { display: block; margin-bottom: 5px; font-weight: bold; font-size: 14px; }
         input[type="text"], input[type="number"] {
@@ -69,11 +73,11 @@
     <h1>📍 GeoAlarma</h1>
     <div id="status" class="status-badge">Inactivo</div>
 
-    <!-- Buscador de direcciones (Pulsa Enter para buscar) -->
     <div class="control-group">
         <input type="text" id="search" placeholder="Escribe una dirección y pulsa Enter...">
     </div>
 
+    <!-- Div donde se inyecta el mapa -->
     <div id="map"></div>
 
     <p style="text-align: center; font-size: 14px; margin: 5px 0 15px 0; color: #666;">
@@ -83,7 +87,6 @@
     <div class="control-group">
         <label>Definir radio de aviso:</label>
         <div class="radio-container">
-            <!-- SE CAMBIA EL RADIO POR DEFECTO A 10 METROS -->
             <input type="number" id="radius" value="10" min="5">
             <span>metros</span>
         </div>
@@ -108,7 +111,7 @@
     </div>
 </div>
 
-<!-- Scripts de Leaflet para el Mapa -->
+<!-- Scripts oficiales de Leaflet -->
 <script src="https://unpkg.com"></script>
 <script>
     let map, userMarker, targetMarker, distanceCircle;
@@ -117,27 +120,33 @@
     let watchId = null;
     let audioContext = null;
 
-    // Inicializar el mapa centrado por defecto en Madrid
+    // Inicializar mapa de forma segura
     map = L.map('map').setView([40.416775, -3.703790], 13);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '© OpenStreetMap'
     }).addTo(map);
 
-    // Ajuste de renderizado automático
-    map.whenReady(() => { setTimeout(() => { map.invalidateSize(); }, 300); });
+    // FIX DEFINITIVO: Forzar recálculo visual en bucle al cargar la página
+    window.addEventListener('load', () => {
+        setTimeout(() => { map.invalidateSize(); }, 200);
+        setTimeout(() => { map.invalidateSize(); }, 600);
+    });
 
-    // Obtener la ubicación real del usuario
+    // Detectar ubicación real del usuario
     if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(position => {
             userCoords = [position.coords.latitude, position.coords.longitude];
-            map.setView(userCoords, 15);
-            userMarker = L.marker(userCoords, {title: "Tu ubicación"}).addTo(map)
-                .bindPopup("Estás aquí").openPopup();
+            map.setView(userCoords, 16);
+            if (userMarker) {
+                userMarker.setLatLng(userCoords);
+            } else {
+                userMarker = L.marker(userCoords, {title: "Tu ubicación"}).addTo(map).bindPopup("Estás aquí").openPopup();
+            }
             map.invalidateSize();
-        });
+        }, () => { console.log("Geolocalización rechazada o inaccesible."); });
     }
 
-    // LÓGICA DEL BUSCADOR: Consultar dirección a la API Nominatim de OpenStreetMap al pulsar Enter
+    // Buscador conectado a OpenStreetMap (Nominatim) al pulsar Enter
     document.getElementById('search').addEventListener('keydown', function(e) {
         if (e.key === 'Enter') {
             e.preventDefault();
@@ -145,17 +154,15 @@
             if (!query) return;
 
             fetch(`https://openstreetmap.org{encodeURIComponent(query)}&limit=1`)
-                .then(response => response.json())
+                .then(res => res.json())
                 .then(data => {
                     if (data && data.length > 0) {
                         const lat = parseFloat(data[0].lat);
                         const lon = parseFloat(data[0].lon);
                         targetCoords = [lat, lon];
                         
-                        // Centrar mapa en la dirección encontrada
                         map.setView(targetCoords, 16);
                         
-                        // Colocar o mover marcador de destino
                         if (targetMarker) {
                             targetMarker.setLatLng(targetCoords);
                         } else {
@@ -164,22 +171,23 @@
                         targetMarker.bindPopup(`<b>Destino:</b><br>${data[0].display_name}`).openPopup();
                         
                         actualizarCirculoYDistancia();
+                        setTimeout(() => { map.invalidateSize(); }, 100);
                     } else {
-                        alert("No se encontró ningún lugar con esa dirección. Prueba a ser más específico.");
+                        alert("No se encontró esa dirección. Intenta agregar la ciudad o ser más específico.");
                     }
                 })
                 .catch(err => {
-                    console.error("Error en la búsqueda:", err);
-                    alert("Ocurrió un error al buscar la dirección.");
+                    console.error(err);
+                    alert("Error en el servidor de mapas.");
                 });
         }
     });
 
-    // Evento manual al hacer clic directamente sobre el mapa
+    // Clic manual en el mapa
     map.on('click', function(e) {
         targetCoords = [e.latlng.lat, e.latlng.lng];
         if (targetMarker) {
-            targetMarker.setLatLng(e.latlng).bindPopup("Destino seleccionado").openPopup();
+            targetMarker.setLatLng(targetCoords).bindPopup("Destino seleccionado").openPopup();
         } else {
             targetMarker = L.marker(targetCoords, {color: 'red'}).addTo(map).bindPopup("Destino seleccionado").openPopup();
         }
@@ -200,10 +208,12 @@
         }
     }
     document.getElementById('radius').addEventListener('input', actualizarCirculoYDistancia);
-    // Activar Alarma Geofence
+</script>
+<script>
+    // Activar Alarma Geofence continua
     document.getElementById('btn-start').addEventListener('click', () => {
         if (!targetCoords) {
-            alert("Por favor, selecciona un destino en el mapa o búscalo en la barra superior.");
+            alert("Por favor, selecciona un destino haciendo clic en el mapa o usando el buscador.");
             return;
         }
 
@@ -265,17 +275,17 @@
             osc.start();
             setTimeout(() => osc.stop(), 2500); 
         } catch(e) {
-            console.log("Audio bloqueado por directiva de autoplay.");
+            console.log("Audio bloqueado temporalmente por políticas del navegador.");
         }
     }
 
-    // Guardar en favoritos básico
+    // Guardar favoritos
     document.getElementById('btn-save').addEventListener('click', () => {
         if (!targetCoords) {
-            alert("Elige una ubicación antes de guardar.");
+            alert("Elige un punto en el mapa primero.");
             return;
         }
-        const nombreFav = prompt("Asigna un nombre a este favorito:", "Mi Destino");
+        const nombreFav = prompt("Asigna un nombre a este favorito:", "Destino Guardado");
         if (nombreFav) {
             const list = document.getElementById('favorites-list');
             if (list.innerHTML.includes("No tienes favoritos")) list.innerHTML = "";
