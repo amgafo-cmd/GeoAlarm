@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>GeoAlarma – Alarma por ubicación</title>
-    <!-- Estilos oficiales de Leaflet desde CDN seguro (HTTPS) -->
+    <!-- 1. Cargamos los estilos oficiales del mapa de forma prioritaria -->
     <link rel="stylesheet" href="https://cloudflare.com" />
     <style>
         body {
@@ -35,13 +35,13 @@
         }
         .status-badge.active { background-color: #e8f5e9; color: #2e7d32; }
         
-        /* Forzamos dimensiones estrictas para evitar que el mapa colapse a 0 píxeles */
+        /* FIX DEFINITIVO DE TAMAÑO: Dimensiones físicas estrictas y visibles por CSS */
         #map { 
             height: 350px !important; 
             width: 100% !important; 
             border-radius: 8px; 
             margin-bottom: 15px; 
-            background: #e0e0e0;
+            background: #e5e5e5;
             position: relative;
             display: block;
         }
@@ -74,11 +74,12 @@
     <h1>📍 GeoAlarma</h1>
     <div id="status" class="status-badge">Inactivo</div>
 
-    <!-- TRANSFORMADO EN FORMULARIO: Captura 'Siguiente', 'Ir' o cualquier envío móvil -->
+    <!-- FORMULARIO MOVIL: Captura el envío de cualquier teclado (Siguiente, Ir, Buscar) -->
     <form id="search-form" class="control-group" action="#" onsubmit="return false;">
-        <input type="text" id="search" placeholder="Escribe dirección y pulsa Buscar o Siguiente..." enterkeyhint="search">
+        <input type="text" id="search" placeholder="Escribe una dirección y pulsa Ir o Siguiente..." enterkeyhint="search">
     </form>
 
+    <!-- El lienzo del mapa -->
     <div id="map"></div>
 
     <p style="text-align: center; font-size: 14px; margin: 5px 0 15px 0; color: #666;">
@@ -88,6 +89,7 @@
     <div class="control-group">
         <label>Definir radio de aviso:</label>
         <div class="radio-container">
+            <!-- Valor por defecto fijado exactamente en 10 metros -->
             <input type="number" id="radius" value="10" min="5">
             <span>metros</span>
         </div>
@@ -112,7 +114,7 @@
     </div>
 </div>
 
-<!-- Scripts oficiales de Leaflet desde CDN seguro -->
+<!-- 2. Cargamos el motor JavaScript de Leaflet de forma segura -->
 <script src="https://cloudflare.com"></script>
 <script>
     let map, userMarker, targetMarker, distanceCircle;
@@ -121,24 +123,25 @@
     let watchId = null;
     let audioContext = null;
 
-    // Inicializar el mapa de forma estándar
+    // Inicialización explícita del mapa
     map = L.map('map').setView([40.416775, -3.703790], 13);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '© OpenStreetMap'
     }).addTo(map);
 
-    // SOLUCIÓN TOTAL AL MAPA INVISIBLE: Fuerza el re-dibujado si el contenedor cambia de tamaño o aparece
+    // ESCUDO CONTRA EL MAPA INVISIBLE: Obliga a re-renderizar las cuadrículas ante cualquier cambio visual
     const resizeObserver = new ResizeObserver(() => {
         if (map) { map.invalidateSize(); }
     });
     resizeObserver.observe(document.getElementById("map"));
 
-    // Forzado extra durante la carga inicial
+    // Forzados redundantes de retardo para asegurar que cargue la interfaz en móviles lentos
     window.addEventListener('load', () => {
-        setTimeout(() => { map.invalidateSize(); }, 300);
+        setTimeout(() => { map.invalidateSize(); }, 200);
+        setTimeout(() => { map.invalidateSize(); }, 600);
     });
 
-    // Encontrar posición del dispositivo del usuario
+    // Detectar la ubicación en tiempo real del usuario
     if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(position => {
             userCoords = [position.coords.latitude, position.coords.longitude];
@@ -149,12 +152,12 @@
                 userMarker = L.marker(userCoords, {title: "Tu ubicación"}).addTo(map).bindPopup("Estás aquí").openPopup();
             }
             map.invalidateSize();
-        });
+        }, () => { console.log("Permiso de ubicación denegado."); });
     }
 
-    // NUEVA LOGICA: Captura el evento 'submit' del formulario (funciona con Siguiente/Ir del móvil)
+    // LÓGICA DEL BUSCADOR: Captura la confirmación del formulario (Enter / Siguiente / Ir)
     document.getElementById('search-form').addEventListener('submit', function(e) {
-        e.preventDefault(); // Evita que la página web se recargue por completo
+        e.preventDefault(); 
         
         const query = document.getElementById('search').value.trim();
         if (!query) return;
@@ -177,19 +180,17 @@
                     targetMarker.bindPopup(`<b>Destino:</b><br>${data.display_name}`).openPopup();
                     
                     actualizarCirculoYDistancia();
-                    // Ocultar teclado virtual en dispositivos móviles enfocando fuera
-                    document.getElementById('search').blur();
+                    document.getElementById('search').blur(); // Cierra el teclado en pantallas móviles
                 } else {
-                    alert("No se encontró esa dirección. Intenta detallar la ciudad.");
+                    alert("No se localizó la dirección. Prueba a especificar la ciudad o país.");
                 }
             })
             .catch(err => {
                 console.error(err);
-                alert("Error de conexión al buscar la ubicación.");
+                alert("Error de respuesta con el servidor de direcciones.");
             });
     });
-
-    // Permitir también seleccionar tocando en el mapa
+    // Clic directo sobre el plano del mapa
     map.on('click', function(e) {
         targetCoords = [e.latlng.lat, e.latlng.lng];
         if (targetMarker) {
@@ -214,12 +215,11 @@
         }
     }
     document.getElementById('radius').addEventListener('input', actualizarCirculoYDistancia);
-</script>
-<script>
-    // Iniciar rastreo perimetral
+
+    // Activación de Geolocalización en Background (Geofence)
     document.getElementById('btn-start').addEventListener('click', () => {
         if (!targetCoords) {
-            alert("Por favor, introduce un destino o tócalo directamente en el mapa.");
+            alert("Selecciona un destino pulsando en el mapa o buscándolo arriba.");
             return;
         }
 
@@ -281,17 +281,17 @@
             osc.start();
             setTimeout(() => osc.stop(), 2500); 
         } catch(e) {
-            console.log("Audio en espera de interacción.");
+            console.log("Audio retenido por restricciones del navegador.");
         }
     }
 
-    // Agregar a favoritos en la interfaz
+    // Gestión básica de favoritos en la sesión local
     document.getElementById('btn-save').addEventListener('click', () => {
         if (!targetCoords) {
-            alert("Selecciona un destino antes de intentar guardarlo.");
+            alert("Elige una ubicación antes de guardarla.");
             return;
         }
-        const nombreFav = prompt("Ponle un nombre a tu favorito:", "Destino Guardado");
+        const nombreFav = prompt("Escribe un nombre para guardar el favorito:", "Destino Guardado");
         if (nombreFav) {
             const list = document.getElementById('favorites-list');
             if (list.innerHTML.includes("No tienes favoritos")) list.innerHTML = "";
