@@ -3,27 +3,26 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GeoAlarma – OpenStreetMap 100% Funcional</title>
-    <!-- Estilos oficiales indispensables de Leaflet cargados en cabecera de prioridad -->
+    <title>GeoAlarma – OpenStreetMap 100% Reparado</title>
+    
+    <!-- 1. CARGA PRIORITARIA: Estilos oficiales de Leaflet -->
     <link rel="stylesheet" href="https://cloudflare.com" crossorigin="anonymous" />
+    
+    <!-- 2. CARGA PRIORITARIA: Motor JavaScript oficial de Leaflet -->
+    <script src="https://cloudflare.com" crossorigin="anonymous"></script>
+
+    <!-- 3. Estilos nativos incrustados para blindar el tamaño físico del mapa -->
     <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 0; padding: 15px; background-color: #f5f5f7; color: #333; }
-        .container { max-width: 600px; margin: 0 auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-        h1 { text-align: center; margin-top: 0; font-size: 24px; }
-        .status-badge { display: block; text-align: center; font-weight: bold; padding: 8px; background-color: #ffebee; color: #c62828; border-radius: 6px; margin-bottom: 15px; }
-        .status-badge.active { background-color: #e8f5e9; color: #2e7d32; }
+        .leaflet-pane,.leaflet-tile,.leaflet-marker-icon,.leaflet-marker-shadow,.leaflet-tile-container,.leaflet-map-pane svg,.leaflet-map-pane canvas,.leaflet-zoom-box,.leaflet-image-layer,.leaflet-layer{position:absolute;left:0;top:0}.leaflet-container{overflow:hidden;-ms-touch-action:none;touch-action:none;cursor:default;-webkit-user-select:none;-moz-user-select:none;-ms-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}.leaflet-tile,.leaflet-marker-icon,.leaflet-marker-shadow{-webkit-user-drag:none;user-select:none;-webkit-user-select:none}.leaflet-tile{filter:inherit;visibility:hidden}.leaflet-tile-loaded{visibility:inherit}.leaflet-zoom-box{width:0;height:0;box-sizing:border-box;z-index:800}.leaflet-pane{z-index:400}.leaflet-tile-pane{z-index:200}.leaflet-overlay-pane{z-index:400}.leaflet-shadow-pane{z-index:500}.leaflet-marker-pane{z-index:600}.leaflet-tooltip-pane{z-index:650}.leaflet-popup-pane{z-index:700}.leaflet-map-pane canvas{z-index:100}.leaflet-map-pane svg{z-index:200}.leaflet-vml-shape{width:1px;height:1px}.lvml{behavior:url(#default#VML);display:inline-block;position:absolute}.leaflet-control{position:relative;z-index:800;pointer-events:auto}.leaflet-top,.leaflet-bottom{position:absolute;z-index:1000;pointer-events:none}.leaflet-top{top:0}.leaflet-right{right:0}.leaflet-bottom{bottom:0}.leaflet-left{left:0}.leaflet-control{float:left;clear:both}.leaflet-right .leaflet-control{float:right}.leaflet-top .leaflet-control{margin-top:10px}.leaflet-bottom .leaflet-control{margin-bottom:10px}.leaflet-left .leaflet-control{margin-left:10px}.leaflet-right .leaflet-control{margin-right:10px}.leaflet-fade-anim .leaflet-tile{opacity:0;-webkit-transition:opacity .2s linear;-moz-transition:opacity .2s linear;transition:opacity .2s linear}.leaflet-fade-anim .leaflet-tile-loaded{opacity:1}.leaflet-zoom-animated{-webkit-transform-origin:0 0;-ms-transform-origin:0 0;transform-origin:0 0}body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;margin:0;padding:15px;background-color:#f5f5f7;color:#333}.container{max-width:600px;margin:0 auto;background:white;padding:20px;border-radius:12px;box-shadow:0 4px 6px rgba(0,0,0,0.1)}h1{text-align:center;margin-top:0;font-size:24px}.status-badge{display:block;text-align:center;font-weight:bold;padding:8px;background-color:#ffebee;color:#c62828;border-radius:6px;margin-bottom:15px}.status-badge.active{background-color:#e8f5e9;color:#2e7d32}
         
-        /* Contenedor del mapa con dimensiones físicas nativas garantizadas por CSS */
-        #map { height: 350px !important; width: 100% !important; border-radius: 8px; margin-bottom: 15px; background: #e5e5e5; display: block; position: relative; }
+        /* Contenedor del mapa forzado con dimensiones fijas estrictas */
+        #map { height: 350px !important; width: 100% !important; border-radius: 8px; margin-bottom: 15px; background: #e5e5e5; display: block; position: relative; z-index: 1; }
         
         .control-group { margin-bottom: 15px; }
         label { display: block; margin-bottom: 5px; font-weight: bold; font-size: 14px; }
-        
-        /* Buscador integrado con botón de lupa */
         .search-container { display: flex; gap: 8px; }
         .search-container input { flex: 1; padding: 10px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; font-size: 16px; }
         .btn-search { background-color: #007aff; color: white; width: auto; max-width: 600px; padding: 10px 15px; }
-        
         input[type="number"] { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; font-size: 16px; }
         .radio-container { display: flex; align-items: center; gap: 10px; }
         .radio-container input { flex: 1; }
@@ -38,9 +37,10 @@
 </head>
 <body>
 <div class="container">
-    <h1>📍 GeoAlarma OSM</h1>
+    <h1>📍 GeoAlarm</h1>
     <div id="status" class="status-badge">Inactivo</div>
 
+    <!-- Formulario estructurado para capturar los teclados móviles -->
     <form id="search-form" class="control-group" action="#" onsubmit="return false;">
         <label for="search">Buscar dirección en OpenStreetMap:</label>
         <div class="search-container">
@@ -49,11 +49,13 @@
         </div>
     </form>
 
+    <!-- El lienzo físico del mapa -->
     <div id="map"></div>
 
     <p style="text-align: center; font-size: 14px; margin: 5px 0 15px 0; color: #666;">
         Distancia al destino: <span id="distance-display" style="font-weight: bold;">--</span> metros
     </p>
+
     <div class="control-group">
         <label>Definir radio de aviso:</label>
         <div class="radio-container">
@@ -81,25 +83,22 @@
         </div>
     </div>
 </div>
-
-<!-- Librería JavaScript oficial de Leaflet cargada de forma segura -->
-<script src="https://cloudflare.com" crossorigin="anonymous"></script>
 <script>
     let map, userMarker, targetMarker, distanceCircle;
     let userCoords = null, targetCoords = null, watchId = null, audioContext = null;
 
-    // Inicializar el plano base de OpenStreetMap centrado por defecto en Madrid de forma nativa e inmediata
+    // Inicializar el mapa de OpenStreetMap de forma nativa e inmediata (Seguro al estar 'L' ya cargada arriba)
     map = L.map('map', { zoomControl: true }).setView([40.4167, -3.7037], 13);
     
-    // Carga directa desde el servidor de OpenStreetMap
+    // Servidor de imágenes directo e independiente de OpenStreetMap
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; OpenStreetMap contributors'
+        attribution: '&copy; OpenStreetMap'
     }).addTo(map);
 
-    // Forzar el tamaño visual correcto para evitar cuadrículas descolocadas
+    // Redibujado de seguridad visual instantáneo
     setTimeout(() => { map.invalidateSize(); }, 200);
 
-    // Obtener ubicación GPS de partida inicial del usuario si da permisos
+    // Obtener la ubicación GPS en tiempo real
     if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(position => {
             userCoords = [position.coords.latitude, position.coords.longitude];
@@ -109,14 +108,14 @@
         }, () => { map.invalidateSize(); });
     }
 
-    // Buscador conectado a OpenStreetMap con lectura de datos verificada
+    // Buscador conectado a OpenStreetMap con lectura de datos verificada []
     document.getElementById('search-form').addEventListener('submit', function(e) {
         e.preventDefault();
         const query = document.getElementById('search').value.trim();
         if (!query) return;
 
         fetch(`https://openstreetmap.org{encodeURIComponent(query)}&limit=1`, {
-            headers: { 'Accept': 'application/json', 'User-Agent': 'GeoAlarmaOSM_Solucion/5.0' }
+            headers: { 'Accept': 'application/json', 'User-Agent': 'GeoAlarmaOSM_Final/5.0' }
         })
         .then(res => res.json())
         .then(data => {
@@ -137,12 +136,12 @@
             }
         }).catch(err => {
             console.error(err);
-            alert("Error temporal con el servidor de mapas. Puedes marcar tu destino dando un toque directo en la pantalla.");
+            alert("Error de conexión. Puedes marcar tu destino dando un toque directo en el mapa.");
         });
-        document.getElementById('search').blur(); // Oculta el teclado táctil
+        document.getElementById('search').blur();
     });
 
-    // Permitir elegir destino manual dando un toque en la pantalla sobre el plano del mapa
+    // Permitir elegir destino manual dando un toque en la pantalla sobre el mapa
     map.on('click', function(e) {
         targetCoords = [e.latlng.lat, e.latlng.lng];
         if (targetMarker) targetMarker.setLatLng(targetCoords).bindPopup("Destino seleccionado").openPopup();
@@ -163,7 +162,7 @@
     }
     document.getElementById('radius').addEventListener('input', actualizarCirculoYDistancia);
 
-    // Activar geolocalización perimetral continua en tiempo real (Geofence)
+    // Alarma continua perimetral
     document.getElementById('btn-start').addEventListener('click', () => {
         if (!targetCoords) { alert("Elige un destino en el mapa o búscalo arriba antes de empezar."); return; }
         
@@ -210,7 +209,7 @@
         }
     }
 
-    // Guardar en favoritos de sesión local
+    // Guardar favoritos
     document.getElementById('btn-save').addEventListener('click', () => {
         if (!targetCoords) return;
         const name = document.getElementById('search').value.trim() || "Destino Guardado";
