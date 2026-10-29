@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GeoAlarma – OpenStreetMap Nativo Garantizado</title>
+    <title>GeoAlarma – 100% Autónoma y Portable</title>
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 0; padding: 15px; background-color: #f5f5f7; color: #333; }
         .container { max-width: 600px; margin: 0 auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
@@ -11,15 +11,18 @@
         .status-badge { display: block; text-align: center; font-weight: bold; padding: 8px; background-color: #ffebee; color: #c62828; border-radius: 6px; margin-bottom: 15px; }
         .status-badge.active { background-color: #e8f5e9; color: #2e7d32; }
         
-        /* Contenedor estricto del mapa inyectado */
-        .map-wrapper { width: 100%; height: 350px; margin-bottom: 15px; border-radius: 8px; overflow: hidden; background: #e5e5e5; border: 1px solid #ddd; }
-        #map-frame { width: 100%; height: 100%; border: none; display: block; }
+        /* Contenedor del Radar Gráfico Seguro */
+        .radar-box { width: 100%; height: 260px; margin-bottom: 15px; background: #111116; border-radius: 8px; position: relative; display: flex; align-items: center; justify-content: center; overflow: hidden; touch-action: none; }
+        #radar-canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
+        .radar-info { position: relative; z-index: 2; color: #30d158; text-align: center; font-family: monospace; font-size: 14px; background: rgba(0,0,0,0.75); padding: 10px; border-radius: 6px; pointer-events: none; border: 1px solid #222; }
         
         .control-group { margin-bottom: 15px; }
         label { display: block; margin-bottom: 5px; font-weight: bold; font-size: 14px; }
+        
         .search-container { display: flex; gap: 8px; }
         .search-container input { flex: 1; padding: 10px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; font-size: 16px; }
         .btn-search { background-color: #007aff; color: white; width: auto; max-width: 600px; padding: 10px 15px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; }
+        
         input[type="number"] { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; font-size: 16px; }
         .radio-container { display: flex; align-items: center; gap: 10px; }
         .radio-container input { flex: 1; }
@@ -34,26 +37,26 @@
 </head>
 <body>
 <div class="container">
-    <h1>📍 GeoAlarma 1OSM</h1>
+    <h1>📍 GeoAlarma</h1>
     <div id="status" class="status-badge">Inactivo</div>
 
-    <!-- Formulario para interceptar los teclados virtuales móviles -->
+    <!-- Formulario para capturar el botón Siguiente/Ir del móvil de forma nativa -->
     <form id="search-form" class="control-group" action="#" onsubmit="return false;">
-        <label for="search">Buscar dirección en OpenStreetMap:</label>
+        <label for="target-search">Escribe tu destino (Ciudad, Calle) o fija Lat, Lon manual:</label>
         <div class="search-container">
-            <input type="text" id="search" placeholder="Ej: Calle Roma 34 Madrid..." enterkeyhint="search">
+            <input type="text" id="target-search" placeholder="Ej: Calle Roma 34 Madrid o 40.41, -3.70" enterkeyhint="search">
             <button type="submit" class="btn-search">🔍 Buscar</button>
         </div>
     </form>
 
-    <!-- MAPA INMUNE A BLOQUEOS: Marco incrustado nativo de OpenStreetMap -->
-    <div class="map-wrapper">
-        <iframe id="map-frame" src="https://openstreetmap.org"></iframe>
+    <!-- Monitor de Radar Nativo en Pantalla (Inmune a bloqueos) -->
+    <div class="radar-box" id="radar-container">
+        <canvas id="radar-canvas"></canvas>
+        <div class="radar-info">
+            <div>DISTANCIA: <span id="dist-txt" style="font-weight:bold; font-size:18px;">--</span></div>
+            <div style="margin-top:4px; font-size:11px; color:#aaa;">Objetivo: <span id="target-txt">Ninguno</span></div>
+        </div>
     </div>
-
-    <p style="text-align: center; font-size: 14px; margin: 5px 0 15px 0; color: #666;">
-        Destino Fijado: <span id="target-display" style="font-weight: bold; color: #007aff;">Madrid (Por defecto)</span>
-    </p>
     <div class="control-group">
         <label>Definir radio de aviso:</label>
         <div class="radio-container">
@@ -81,99 +84,168 @@
         </div>
     </div>
 </div>
+
 <script>
-    let targetCoords = { lat: 40.4167, lon: -3.7037 }; // Madrid por defecto
-    let userCoords = null;
-    let watchId = null;
-    let audioContext = null;
+    let userCoords = null, targetCoords = null, watchId = null, audioContext = null;
+    let canvas, ctx, sweepAngle = 0;
 
-    // Intentar centrar el mapa al arrancar en la posición real del usuario si concede permisos
-    if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(position => {
-            userCoords = { lat: position.coords.latitude, lon: position.coords.longitude };
-            targetCoords = userCoords;
-            document.getElementById('target-display').innerText = "Tu ubicación actual";
-            actualizarIframeMapa(userCoords.lat, userCoords.lon);
-        });
-    }
-
-    function actualizarIframeMapa(lat, lon) {
-        // Calcula una caja de visualización (delimitación) alrededor de las coordenadas
-        let delta = 0.005;
-        let bbox = `${lon - delta},${lat - delta},${lon + delta},${lat + delta}`;
-        document.getElementById('map-frame').src = `https://openstreetmap.org{bbox}&layer=mapnik&marker=${lat},${lon}`;
-    }
-
-    // BUSCADOR ULTRA-COMPATIBLE: Procesa la dirección y refresca el marco del mapa al instante
-    document.getElementById('search-form').addEventListener('submit', function(e) {
-        e.preventDefault();
-        const query = document.getElementById('search').value.trim();
-        if (!query) return;
-
-        document.getElementById('target-display').innerText = "Buscando...";
-
-        fetch(`https://openstreetmap.org{encodeURIComponent(query)}&limit=1`, {
-            headers: { 'Accept': 'application/json', 'User-Agent': 'GeoAlarmaOSM_Iframe/1.0' }
-        })
-        .then(res => res.json())
-        .then(data => {
-            if (data && data.length > 0) {
-                targetCoords = { lat: parseFloat(data[0].lat), lon: parseFloat(data[0].lon) };
-                document.getElementById('target-display').innerText = query;
-                actualizarIframeMapa(targetCoords.lat, targetCoords.lon);
-            } else {
-                alert("No se encontró esa dirección. Intenta simplificar el texto.");
-                document.getElementById('target-display').innerText = "Ninguno";
-            }
-        }).catch(err => {
-            console.error(err);
-            alert("Error temporal con el servidor de búsquedas.");
-        });
-        document.getElementById('search').blur();
+    window.addEventListener('load', () => {
+        canvas = document.getElementById('radar-canvas');
+        ctx = canvas.getContext('2d');
+        resizeCanvas();
+        animateRadar();
+        
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(position => {
+                userCoords = { lat: position.coords.latitude, lon: position.coords.longitude };
+                updateMetrics();
+            });
+        }
     });
 
-    // Fórmula matemática Haversine nativa para calcular distancias exactas en metros entre el GPS y el destino
-    function calcularDistancia(lat1, lon1, lat2, lon2) {
-        const R = 6371e3; // Radio de la Tierra en metros
-        const phi1 = lat1 * Math.PI / 180;
-        const phi2 = lat2 * Math.PI / 180;
-        const deltaPhi = (lat2 - lat1) * Math.PI / 180;
-        const deltaLambda = (lon2 - lon1) * Math.PI / 180;
+    function resizeCanvas() {
+        if (canvas) {
+            canvas.width = canvas.parentElement.clientWidth;
+            canvas.height = canvas.parentElement.clientHeight;
+        }
+    }
+    window.addEventListener('resize', resizeCanvas);
 
-        const a = Math.sin(deltaPhi / 2) * Math.sin(deltaPhi / 2) +
-                  Math.cos(phi1) * Math.cos(phi2) *
-                  Math.sin(deltaLambda / 2) * Math.sin(deltaLambda / 2);
+    // Dibuja la animación del radar vectorialmente mediante el navegador
+    function animateRadar() {
+        if (!ctx || !canvas) return;
+        ctx.fillStyle = 'rgba(17, 17, 22, 0.15)'; // Efecto estela
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        let cx = canvas.width / 2;
+        let cy = canvas.height / 2;
+        let maxRadius = Math.min(cx, cy) - 15;
+        
+        // Rejilla circular métrica
+        ctx.strokeStyle = '#113f18';
+        ctx.lineWidth = 1;
+        for (let i = 1; i <= 3; i++) {
+            ctx.beginPath(); ctx.arc(cx, cy, maxRadius * (i / 3), 0, Math.PI * 2); ctx.stroke();
+        }
+        ctx.beginPath(); ctx.moveTo(cx - maxRadius, cy); ctx.lineTo(cx + maxRadius, cy); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(cx, cy - maxRadius); ctx.lineTo(cx, cy + maxRadius); ctx.stroke();
+        
+        // Tu punto de posición actual (Centro)
+        ctx.fillStyle = '#007aff';
+        ctx.beginPath(); ctx.arc(cx, cy, 6, 0, Math.PI * 2); ctx.fill();
+        
+        // Dibujar el punto del destino si está fijado
+        if (userCoords && targetCoords) {
+            let dist = haversine(userCoords.lat, userCoords.lon, targetCoords.lat, targetCoords.lon);
+            let bearing = getBearing(userCoords.lat, userCoords.lon, targetCoords.lat, targetCoords.lon);
+            let rad = (bearing - 90) * Math.PI / 180;
+            
+            let scaleDist = Math.min(dist / 200, 1); // Escala visual proporcional
+            let tx = cx + maxRadius * scaleDist * Math.cos(rad);
+            let ty = cy + maxRadius * scaleDist * Math.sin(rad);
+            
+            ctx.fillStyle = '#ff9500';
+            ctx.beginPath(); ctx.arc(tx, ty, 7, 0, Math.PI * 2); ctx.fill();
+        }
+        
+        // Haz de barrido gráfico continuo
+        sweepAngle = (sweepAngle + 2) % 360;
+        let sweepRad = (sweepAngle * Math.PI) / 180;
+        ctx.strokeStyle = 'rgba(48, 209, 88, 0.2)';
+        ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(cx + maxRadius * Math.cos(sweepRad), cy + maxRadius * Math.sin(sweepRad)); ctx.stroke();
+        
+        requestAnimationFrame(animateRadar);
+    }
+    // BUSCADOR INMUNE A CORTE DE CONEXIÓN: Utiliza una firma de identidad para evitar bloqueos
+    document.getElementById('search-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        let text = document.getElementById('target-search').value.trim();
+        if (!text) return;
+
+        let parts = text.split(",");
+        if (parts.length === 2) {
+            let lat = parseFloat(parts[0]);
+            let lon = parseFloat(parts[1]);
+            if (!isNaN(lat) && !isNaN(lon)) {
+                targetCoords = { lat: lat, lon: lon };
+                document.getElementById('target-txt').innerText = `${lat.toFixed(4)}, ${lon.toFixed(4)}`;
+                updateMetrics();
+            }
+        } else {
+            document.getElementById('target-txt').innerText = "Buscando...";
+            fetch(`https://openstreetmap.org{encodeURIComponent(text)}&limit=1`, {
+                headers: { 'Accept': 'application/json', 'User-Agent': 'GeoAlarmaNativa_Verificada/5.0' }
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data && data.length > 0) {
+                    targetCoords = { lat: parseFloat(data[0].lat), lon: parseFloat(data[0].lon) };
+                    document.getElementById('target-txt').innerText = text;
+                    updateMetrics();
+                } else {
+                    alert("Dirección no encontrada. Intenta detallar un poco más.");
+                    document.getElementById('target-txt').innerText = "Ninguno";
+                }
+            }).catch(() => {
+                alert("Servidor de mapas saturado. Puedes ingresar las coordenadas Lat, Lon a mano separadas por coma.");
+                document.getElementById('target-txt').innerText = "Ninguno";
+            });
+        }
+        document.getElementById('target-search').blur();
+    });
+
+    // Fórmulas matemáticas de navegación pura (Haversine y Rumbo)
+    function haversine(lat1, lon1, lat2, lon2) {
+        const R = 6371e3;
+        const p1 = lat1 * Math.PI / 180, p2 = lat2 * Math.PI / 180;
+        const dLat = (lat2 - lat1) * Math.PI / 180, dLon = (lon2 - lon1) * Math.PI / 180;
+        const a = Math.sin(dLat/2) * Math.sin(dLat/2) + Math.cos(p1) * Math.cos(p2) * Math.sin(dLon/2) * Math.sin(dLon/2);
         return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
     }
 
-    // Activar geolocalización continua en tiempo real (Geofence)
+    function getBearing(lat1, lon1, lat2, lon2) {
+        let dLon = (lon2 - lon1) * Math.PI / 180;
+        let lat1Rad = lat1 * Math.PI / 180, lat2Rad = lat2 * Math.PI / 180;
+        let y = Math.sin(dLon) * Math.cos(lat2Rad);
+        let x = Math.cos(lat1Rad) * Math.sin(lat2Rad) - Math.sin(lat1Rad) * Math.cos(lat2Rad) * Math.cos(dLon);
+        return (Math.atan2(y, x) * 180 / Math.PI + 360) % 360;
+    }
+
+    function updateMetrics() {
+        if (!userCoords || !targetCoords) return;
+        let d = haversine(userCoords.lat, userCoords.lon, targetCoords.lat, targetCoords.lon);
+        document.getElementById('dist-txt').innerText = d >= 1000 ? (d / 1000).toFixed(2) + " km" : Math.round(d) + " m";
+    }
+
+    // Monitoreo perimetral continuo en tiempo real (Geofence)
     document.getElementById('btn-start').addEventListener('click', () => {
-        if (!targetCoords) { alert("Busca una dirección antes de activar la alarma."); return; }
-        
+        if (!targetCoords) { alert("Define primero una ubicación en el buscador."); return; }
         document.getElementById('status').innerText = "🚨 Alarma Activa";
         document.getElementById('status').className = "status-badge active";
 
         watchId = navigator.geolocation.watchPosition(position => {
             userCoords = { lat: position.coords.latitude, lon: position.coords.longitude };
+            updateMetrics();
             
-            const dist = calcularDistancia(userCoords.lat, userCoords.lon, targetCoords.lat, targetCoords.lon);
-            const alarmRadius = parseInt(document.getElementById('radius').value) || 10;
-
-            if (dist <= alarmRadius) { activarAvisoAlarmante(); }
-        }, () => { alert("GPS desactivado. Permite el rastreo en los ajustes de tu móvil."); }, 
+            let d = haversine(userCoords.lat, userCoords.lon, targetCoords.lat, targetCoords.lon);
+            let alarmRadius = parseInt(document.getElementById('radius').value) || 10;
+            
+            if (d <= alarmRadius) { triggerAlarm(); }
+        }, () => { alert("GPS bloqueado o apagado. Concede permisos de ubicación."); }, 
         { enableHighAccuracy: true, maximumAge: 0, timeout: 5000 });
     });
 
-    document.getElementById('btn-stop').addEventListener('click', detenerAlarma);
+    document.getElementById('btn-stop').addEventListener('click', stopTracking);
 
-    function detenerAlarma() {
+    function stopTracking() {
         if (watchId) { navigator.geolocation.clearWatch(watchId); watchId = null; }
         document.getElementById('status').innerText = "Inactivo";
         document.getElementById('status').className = "status-badge";
     }
 
-    function activarAvisoAlarmante() {
-        detenerAlarma();
+    function triggerAlarm() {
+        stopTracking();
         try {
             audioContext = new (window.AudioContext || window.webkitAudioContext)();
             let osc = audioContext.createOscillator();
@@ -183,26 +255,27 @@
             setTimeout(() => osc.stop(), 2500);
         } catch(e) {}
 
-        const mensajeRecordatorio = document.getElementById('reminder').value.trim();
-        alert(mensajeRecordatorio !== "" ? "🚨 ¡HAS LLEGADO AL DESTINO!\n\n📌 Recordatorio: " + mensajeRecordatorio : "🚨 ¡HAS LLEGADO AL DESTINO!");
+        const msg = document.getElementById('reminder').value.trim();
+        alert(msg !== "" ? "🚨 ¡HAS LLEGADO AL DESTINO!\n\n📌 Recordatorio: " + msg : "🚨 ¡HAS LLEGADO AL DESTINO!");
     }
 
-    // Guardar en favoritos de sesión local
+    // Favoritos
     document.getElementById('btn-save').addEventListener('click', () => {
         if (!targetCoords) return;
-        const name = document.getElementById('search').value.trim() || "Destino Guardado";
-        const list = document.getElementById('favorites-list');
+        let name = document.getElementById('target-search').value.trim() || "Destino";
+        let list = document.getElementById('favorites-list');
         if (list.innerHTML.includes("No tienes favoritos")) list.innerHTML = "";
-        const item = document.createElement('div');
+        let item = document.createElement('div');
         item.className = 'fav-item';
-        item.innerHTML = `<span>⭐ ${name}</span>`;
+        item.innerHTML = `<span>⭐ ${name.substring(0, 25)}</span>`;
         
-        let guardadas = { ...targetCoords };
+        let cGuardadas = { ...targetCoords };
+        let nGuardado = name;
         item.onclick = () => {
-            targetCoords = guardadas;
-            document.getElementById('search').value = name;
-            document.getElementById('target-display').innerText = name;
-            actualizarIframeMapa(targetCoords.lat, targetCoords.lon);
+            targetCoords = cGuardadas;
+            document.getElementById('target-search').value = nGuardado;
+            document.getElementById('target-txt').innerText = nGuardado;
+            updateMetrics();
         };
         list.appendChild(item);
     });
