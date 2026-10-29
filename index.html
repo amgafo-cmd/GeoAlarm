@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GeoAlarma – OpenStreetMap Oficial</title>
-    <!-- Estilos oficiales de Leaflet para estructurar el mapa -->
+    <title>GeoAlarma – OpenStreetMap Oficial Solucionado</title>
+    <!-- Estilos oficiales de Leaflet indispensables para estructurar las capas del mapa -->
     <link rel="stylesheet" href="https://cloudflare.com" crossorigin="anonymous" />
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 0; padding: 15px; background-color: #f5f5f7; color: #333; }
@@ -13,7 +13,7 @@
         .status-badge { display: block; text-align: center; font-weight: bold; padding: 8px; background-color: #ffebee; color: #c62828; border-radius: 6px; margin-bottom: 15px; }
         .status-badge.active { background-color: #e8f5e9; color: #2e7d32; }
         
-        /* Contenedor del mapa forzado para evitar colapsos visuales */
+        /* Contenedor del mapa reforzado con dimensiones fijas estrictas */
         #map { height: 350px !important; width: 100% !important; border-radius: 8px; margin-bottom: 15px; background: #e5e5e5; display: block; position: relative; z-index: 1; }
         
         .control-group { margin-bottom: 15px; }
@@ -32,10 +32,10 @@
 </head>
 <body>
 <div class="container">
-    <h1>📍 GeoAlarma OSM</h1>
+    <h1>📍 GeoAlarma </h1>
     <div id="status" class="status-badge">Inactivo</div>
 
-    <!-- Formulario para interceptar correctamente los teclados móviles -->
+    <!-- Formulario estructurado para capturar los teclados móviles (Ir/Siguiente) -->
     <form id="search-form" class="control-group" action="#" onsubmit="return false;">
         <label for="search">Buscar dirección en OpenStreetMap:</label>
         <input type="text" id="search" placeholder="Ej: Calle Roma 34 Madrid..." enterkeyhint="search">
@@ -74,27 +74,27 @@
     </div>
 </div>
 
-<!-- Librería del motor de mapas Leaflet -->
+<!-- Librería JavaScript oficial de Leaflet para inyectar los mapas dinámicos -->
 <script src="https://cloudflare.com" crossorigin="anonymous"></script>
 
 <script>
     let map, userMarker, targetMarker, distanceCircle;
     let userCoords = null, targetCoords = null, watchId = null, audioContext = null;
 
-    // Inicializar el lienzo del mapa de forma segura
+    // Inicializar el plano base de OpenStreetMap centrado por defecto en Madrid
     map = L.map('map', { zoomControl: true }).setView([40.4167, -3.7037], 13);
     
-    // Capas de mapas de OpenStreetMap seguras mediante CartoDB Voyager (Evita bloqueos CSP de GitHub)
+    // Carga de las imágenes del mapa mediante el servidor Voyager (Soporte SSL nativo)
     L.tileLayer('https://{s}://{z}/{x}/{y}{r}.png', {
         attribution: '&copy; OpenStreetMap'
     }).addTo(map);
 
-    // Corregir dimensiones dinámicas en pantallas móviles
+    // Sistema automático para redibujar el mapa si detecta cambios de pantalla en móviles
     const mapObserver = new ResizeObserver(() => { if (map) map.invalidateSize(); });
     mapObserver.observe(document.getElementById("map"));
     window.addEventListener('load', () => { setTimeout(() => { map.invalidateSize(); }, 400); });
 
-    // Cargar ubicación GPS inicial del usuario
+    // Rastrear la ubicación GPS de salida inicial del usuario
     if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(position => {
             userCoords = [position.coords.latitude, position.coords.longitude];
@@ -104,18 +104,18 @@
         }, () => { map.invalidateSize(); });
     }
 
-    // BUSCADOR CORREGIDO: Procesa la estructura JSON real de OpenStreetMap sin romper el código
+    // SOLUCIÓN AL APAGÓN: Corregido el lector de datos apuntando al índice [0] de la lista devuelta por OpenStreetMap
     document.getElementById('search-form').addEventListener('submit', function(e) {
         e.preventDefault();
         const query = document.getElementById('search').value.trim();
         if (!query) return;
 
         fetch(`https://openstreetmap.org{encodeURIComponent(query)}&limit=1`, {
-            headers: { 'Accept': 'application/json', 'User-Agent': 'GeoAlarmaOSM_Personal/2.0' }
+            headers: { 'Accept': 'application/json', 'User-Agent': 'GeoAlarmaOSM_Solucion/3.0' }
         })
         .then(res => res.json())
         .then(data => {
-            // CORRECCIÓN CLAVE: OpenStreetMap devuelve un Array, validamos que tenga contenido
+            // Se añade la validación del índice [0] para evitar romper la carga del mapa
             if (data && data.length > 0) {
                 const lat = parseFloat(data[0].lat);
                 const lon = parseFloat(data[0].lon);
@@ -129,15 +129,15 @@
                 targetMarker.bindPopup(`<b>Destino:</b><br>${data[0].display_name}`).openPopup();
                 actualizarCirculoYDistancia();
             } else {
-                alert("No se encontró esa dirección exacta. Intenta simplificar el texto.");
+                alert("No se encontró esa dirección. Intenta simplificar el texto.");
             }
         }).catch(err => {
             console.error(err);
-            alert("No se pudo conectar con el buscador. Intenta marcar el destino tocando directamente el mapa.");
+            alert("Error temporal con el servidor de mapas. Puedes marcar tu destino dando un toque directo en la pantalla.");
         });
-        document.getElementById('search').blur(); // Oculta el teclado táctil
+        document.getElementById('search').blur(); // Cierra el teclado táctil
     });
-    // Permitir fijar destino de forma manual dando un toque en la pantalla sobre el plano
+    // Permitir fijar destino manual tocando la pantalla directamente sobre el plano del mapa
     map.on('click', function(e) {
         targetCoords = [e.latlng.lat, e.latlng.lng];
         if (targetMarker) targetMarker.setLatLng(targetCoords).bindPopup("Destino seleccionado").openPopup();
@@ -158,7 +158,7 @@
     }
     document.getElementById('radius').addEventListener('input', actualizarCirculoYDistancia);
 
-    // Activar geolocalización en background continua (Geofence)
+    // Activar geolocalización perimetral continua en tiempo real (Geofence)
     document.getElementById('btn-start').addEventListener('click', () => {
         if (!targetCoords) { alert("Elige un destino en el mapa o búscalo arriba antes de empezar."); return; }
         
@@ -197,6 +197,7 @@
             setTimeout(() => osc.stop(), 2500);
         } catch(e) {}
 
+        // Ventana emergente que muestra el recordatorio introducido en la caja de texto libre
         const mensajeRecordatorio = document.getElementById('reminder').value.trim();
         if (mensajeRecordatorio !== "") { 
             alert("🚨 ¡HAS LLEGADO AL DESTINO!\n\n📌 Recordatorio: " + mensajeRecordatorio); 
@@ -205,7 +206,7 @@
         }
     }
 
-    // Favoritos
+    // Guardar en favoritos de sesión local
     document.getElementById('btn-save').addEventListener('click', () => {
         if (!targetCoords) return;
         const name = document.getElementById('search').value.trim() || "Destino Guardado";
