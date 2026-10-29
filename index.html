@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GeoAlarma – OpenStreetMap 100% Verificado</title>
-    <!-- Estilos oficiales indispensables de Leaflet -->
+    <title>GeoAlarma – OpenStreetMap 100% Funcional</title>
+    <!-- Estilos oficiales indispensables de Leaflet cargados en cabecera de prioridad -->
     <link rel="stylesheet" href="https://cloudflare.com" crossorigin="anonymous" />
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 0; padding: 15px; background-color: #f5f5f7; color: #333; }
@@ -13,8 +13,8 @@
         .status-badge { display: block; text-align: center; font-weight: bold; padding: 8px; background-color: #ffebee; color: #c62828; border-radius: 6px; margin-bottom: 15px; }
         .status-badge.active { background-color: #e8f5e9; color: #2e7d32; }
         
-        /* Contenedor del mapa reforzado con dimensiones fijas estrictas */
-        #map { height: 350px !important; width: 100% !important; border-radius: 8px; margin-bottom: 15px; background: #e5e5e5; display: block; position: relative; z-index: 1; }
+        /* Contenedor del mapa con dimensiones físicas nativas garantizadas por CSS */
+        #map { height: 350px !important; width: 100% !important; border-radius: 8px; margin-bottom: 15px; background: #e5e5e5; display: block; position: relative; }
         
         .control-group { margin-bottom: 15px; }
         label { display: block; margin-bottom: 5px; font-weight: bold; font-size: 14px; }
@@ -22,7 +22,7 @@
         /* Buscador integrado con botón de lupa */
         .search-container { display: flex; gap: 8px; }
         .search-container input { flex: 1; padding: 10px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; font-size: 16px; }
-        .btn-search { background-color: #007aff; color: white; width: auto; max-width: 100px; padding: 10px 15px; }
+        .btn-search { background-color: #007aff; color: white; width: auto; max-width: 600px; padding: 10px 15px; }
         
         input[type="number"] { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; font-size: 16px; }
         .radio-container { display: flex; align-items: center; gap: 10px; }
@@ -38,15 +38,14 @@
 </head>
 <body>
 <div class="container">
-    <h1>📍 GeoAlarma </h1>
+    <h1>📍 GeoAlarma OSM</h1>
     <div id="status" class="status-badge">Inactivo</div>
 
-    <!-- Formulario estructurado para capturar los teclados móviles e inyectar botón de buscar manual -->
     <form id="search-form" class="control-group" action="#" onsubmit="return false;">
         <label for="search">Buscar dirección en OpenStreetMap:</label>
         <div class="search-container">
             <input type="text" id="search" placeholder="Ej: Calle Roma 34 Madrid..." enterkeyhint="search">
-            <button type="submit" class="btn-search">🔍</button>
+            <button type="submit" class="btn-search">🔍 Buscar</button>
         </div>
     </form>
 
@@ -83,58 +82,44 @@
     </div>
 </div>
 
-<!-- Librería JavaScript oficial de Leaflet -->
+<!-- Librería JavaScript oficial de Leaflet cargada de forma segura -->
 <script src="https://cloudflare.com" crossorigin="anonymous"></script>
-
 <script>
     let map, userMarker, targetMarker, distanceCircle;
     let userCoords = null, targetCoords = null, watchId = null, audioContext = null;
 
-    // ESCUDO DE CARGA: Forzamos a esperar a que el navegador dibuje todo antes de ejecutar el mapa
-    window.onload = function() {
-        // Inicializar el plano base de OpenStreetMap centrado por defecto en Madrid
-        map = L.map('map', { zoomControl: true }).setView([40.4167, -3.7037], 13);
-        
-        // Servidor de imágenes directo oficial de OpenStreetMap sin intermediarios
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '&copy; OpenStreetMap'
-        }).addTo(map);
+    // Inicializar el plano base de OpenStreetMap centrado por defecto en Madrid de forma nativa e inmediata
+    map = L.map('map', { zoomControl: true }).setView([40.4167, -3.7037], 13);
+    
+    // Carga directa desde el servidor de OpenStreetMap
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap contributors'
+    }).addTo(map);
 
-        // Sistema automático para forzar el tamaño correcto en pantallas móviles
-        const mapObserver = new ResizeObserver(() => { if (map) map.invalidateSize(); });
-        mapObserver.observe(document.getElementById("map"));
-        setTimeout(() => { map.invalidateSize(); }, 300);
+    // Forzar el tamaño visual correcto para evitar cuadrículas descolocadas
+    setTimeout(() => { map.invalidateSize(); }, 200);
 
-        // Rastrear la ubicación GPS inicial del usuario si da permisos
-        if (navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition(position => {
-                userCoords = [position.coords.latitude, position.coords.longitude];
-                map.setView(userCoords, 15);
-                userMarker = L.marker(userCoords).addTo(map).bindPopup("Estás aquí").openPopup();
-                map.invalidateSize();
-            }, () => { map.invalidateSize(); });
-        }
+    // Obtener ubicación GPS de partida inicial del usuario si da permisos
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(position => {
+            userCoords = [position.coords.latitude, position.coords.longitude];
+            map.setView(userCoords, 15);
+            userMarker = L.marker(userCoords).addTo(map).bindPopup("Estás aquí").openPopup();
+            map.invalidateSize();
+        }, () => { map.invalidateSize(); });
+    }
 
-        // Permitir elegir destino manual dando un toque en la pantalla sobre el plano del mapa
-        map.on('click', function(e) {
-            targetCoords = [e.latlng.lat, e.latlng.lng];
-            if (targetMarker) targetMarker.setLatLng(targetCoords).bindPopup("Destino seleccionado").openPopup();
-            else targetMarker = L.marker(targetCoords).addTo(map).bindPopup("Destino seleccionado").openPopup();
-            actualizarCirculoYDistancia();
-        });
-    };
-    // BUSCADOR CORREGIDO DE FORMA ESTRICTA: Apunta al índice [0] del array devuelto por OpenStreetMap
+    // Buscador conectado a OpenStreetMap con lectura de datos verificada
     document.getElementById('search-form').addEventListener('submit', function(e) {
         e.preventDefault();
         const query = document.getElementById('search').value.trim();
         if (!query) return;
 
         fetch(`https://openstreetmap.org{encodeURIComponent(query)}&limit=1`, {
-            headers: { 'Accept': 'application/json', 'User-Agent': 'GeoAlarmaOSM_Verificado/4.0' }
+            headers: { 'Accept': 'application/json', 'User-Agent': 'GeoAlarmaOSM_Solucion/5.0' }
         })
         .then(res => res.json())
         .then(data => {
-            // VERIFICACIÓN ABSOLUTA: Validamos la respuesta y extraemos del primer registro [0]
             if (data && data.length > 0) {
                 const lat = parseFloat(data[0].lat);
                 const lon = parseFloat(data[0].lon);
@@ -148,17 +133,24 @@
                 targetMarker.bindPopup(`<b>Destino:</b><br>${data[0].display_name}`).openPopup();
                 actualizarCirculoYDistancia();
             } else {
-                alert("No se encontró esa dirección exacta. Intenta simplificar el texto.");
+                alert("No se encontró esa dirección. Intenta simplificar el texto.");
             }
         }).catch(err => {
             console.error(err);
-            alert("No se pudo conectar con el servidor. Puedes marcar tu destino dando un toque directo en el mapa.");
+            alert("Error temporal con el servidor de mapas. Puedes marcar tu destino dando un toque directo en la pantalla.");
         });
         document.getElementById('search').blur(); // Oculta el teclado táctil
     });
 
+    // Permitir elegir destino manual dando un toque en la pantalla sobre el plano del mapa
+    map.on('click', function(e) {
+        targetCoords = [e.latlng.lat, e.latlng.lng];
+        if (targetMarker) targetMarker.setLatLng(targetCoords).bindPopup("Destino seleccionado").openPopup();
+        else targetMarker = L.marker(targetCoords).addTo(map).bindPopup("Destino seleccionado").openPopup();
+        actualizarCirculoYDistancia();
+    });
+
     function actualizarCirculoYDistancia() {
-        if (!map) return;
         const radiusVal = parseInt(document.getElementById('radius').value) || 10;
         if (distanceCircle) map.removeLayer(distanceCircle);
         if (targetCoords) {
@@ -182,13 +174,11 @@
             userCoords = [position.coords.latitude, position.coords.longitude];
             if (userMarker) userMarker.setLatLng(userCoords);
 
-            if (map) {
-                const dist = map.distance(userCoords, targetCoords);
-                document.getElementById('distance-display').innerText = Math.round(dist);
+            const dist = map.distance(userCoords, targetCoords);
+            document.getElementById('distance-display').innerText = Math.round(dist);
 
-                const alarmRadius = parseInt(document.getElementById('radius').value) || 10;
-                if (dist <= alarmRadius) { activarAvisoAlarmante(); }
-            }
+            const alarmRadius = parseInt(document.getElementById('radius').value) || 10;
+            if (dist <= alarmRadius) { activarAvisoAlarmante(); }
         }, () => { alert("GPS desactivado. Permite el rastreo en los ajustes de tu móvil."); }, 
         { enableHighAccuracy: true, maximumAge: 0, timeout: 5000 });
     });
@@ -222,7 +212,7 @@
 
     // Guardar en favoritos de sesión local
     document.getElementById('btn-save').addEventListener('click', () => {
-        if (!targetCoords || !map) return;
+        if (!targetCoords) return;
         const name = document.getElementById('search').value.trim() || "Destino Guardado";
         const list = document.getElementById('favorites-list');
         if (list.innerHTML.includes("No tienes favoritos")) list.innerHTML = "";
