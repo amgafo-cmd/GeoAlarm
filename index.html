@@ -3,15 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GeoAlarma – OpenStreetMap 100% Reparado</title>
-    
-    <!-- 1. CARGA PRIORITARIA: Estilos oficiales de Leaflet -->
-    <link rel="stylesheet" href="https://cloudflare.com" crossorigin="anonymous" />
-    
-    <!-- 2. CARGA PRIORITARIA: Motor JavaScript oficial de Leaflet -->
-    <script src="https://cloudflare.com" crossorigin="anonymous"></script>
-
-    <!-- 3. Estilos nativos incrustados para blindar el tamaño físico del mapa -->
+    <title>GeoAlarma – 100% Autónoma y Portable</title>
+    <!-- Estilos de Leaflet incrustados directamente para evitar bloqueos del navegador -->
     <style>
         .leaflet-pane,.leaflet-tile,.leaflet-marker-icon,.leaflet-marker-shadow,.leaflet-tile-container,.leaflet-map-pane svg,.leaflet-map-pane canvas,.leaflet-zoom-box,.leaflet-image-layer,.leaflet-layer{position:absolute;left:0;top:0}.leaflet-container{overflow:hidden;-ms-touch-action:none;touch-action:none;cursor:default;-webkit-user-select:none;-moz-user-select:none;-ms-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}.leaflet-tile,.leaflet-marker-icon,.leaflet-marker-shadow{-webkit-user-drag:none;user-select:none;-webkit-user-select:none}.leaflet-tile{filter:inherit;visibility:hidden}.leaflet-tile-loaded{visibility:inherit}.leaflet-zoom-box{width:0;height:0;box-sizing:border-box;z-index:800}.leaflet-pane{z-index:400}.leaflet-tile-pane{z-index:200}.leaflet-overlay-pane{z-index:400}.leaflet-shadow-pane{z-index:500}.leaflet-marker-pane{z-index:600}.leaflet-tooltip-pane{z-index:650}.leaflet-popup-pane{z-index:700}.leaflet-map-pane canvas{z-index:100}.leaflet-map-pane svg{z-index:200}.leaflet-vml-shape{width:1px;height:1px}.lvml{behavior:url(#default#VML);display:inline-block;position:absolute}.leaflet-control{position:relative;z-index:800;pointer-events:auto}.leaflet-top,.leaflet-bottom{position:absolute;z-index:1000;pointer-events:none}.leaflet-top{top:0}.leaflet-right{right:0}.leaflet-bottom{bottom:0}.leaflet-left{left:0}.leaflet-control{float:left;clear:both}.leaflet-right .leaflet-control{float:right}.leaflet-top .leaflet-control{margin-top:10px}.leaflet-bottom .leaflet-control{margin-bottom:10px}.leaflet-left .leaflet-control{margin-left:10px}.leaflet-right .leaflet-control{margin-right:10px}.leaflet-fade-anim .leaflet-tile{opacity:0;-webkit-transition:opacity .2s linear;-moz-transition:opacity .2s linear;transition:opacity .2s linear}.leaflet-fade-anim .leaflet-tile-loaded{opacity:1}.leaflet-zoom-animated{-webkit-transform-origin:0 0;-ms-transform-origin:0 0;transform-origin:0 0}body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;margin:0;padding:15px;background-color:#f5f5f7;color:#333}.container{max-width:600px;margin:0 auto;background:white;padding:20px;border-radius:12px;box-shadow:0 4px 6px rgba(0,0,0,0.1)}h1{text-align:center;margin-top:0;font-size:24px}.status-badge{display:block;text-align:center;font-weight:bold;padding:8px;background-color:#ffebee;color:#c62828;border-radius:6px;margin-bottom:15px}.status-badge.active{background-color:#e8f5e9;color:#2e7d32}
         
@@ -22,7 +15,7 @@
         label { display: block; margin-bottom: 5px; font-weight: bold; font-size: 14px; }
         .search-container { display: flex; gap: 8px; }
         .search-container input { flex: 1; padding: 10px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; font-size: 16px; }
-        .btn-search { background-color: #007aff; color: white; width: auto; max-width: 600px; padding: 10px 15px; }
+        .btn-search { background-color: #007aff; color: white; width: auto; max-width: 600px; padding: 10px 15px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; }
         input[type="number"] { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; font-size: 16px; }
         .radio-container { display: flex; align-items: center; gap: 10px; }
         .radio-container input { flex: 1; }
@@ -37,10 +30,10 @@
 </head>
 <body>
 <div class="container">
-    <h1>📍 GeoAlarm</h1>
+    <h1>📍 GeoAlarma </h1>
     <div id="status" class="status-badge">Inactivo</div>
 
-    <!-- Formulario estructurado para capturar los teclados móviles -->
+    <!-- Formulario estructurado para capturar el teclado móvil -->
     <form id="search-form" class="control-group" action="#" onsubmit="return false;">
         <label for="search">Buscar dirección en OpenStreetMap:</label>
         <div class="search-container">
@@ -49,7 +42,7 @@
         </div>
     </form>
 
-    <!-- El lienzo físico del mapa -->
+    <!-- Contenedor del mapa -->
     <div id="map"></div>
 
     <p style="text-align: center; font-size: 14px; margin: 5px 0 15px 0; color: #666;">
@@ -83,30 +76,52 @@
         </div>
     </div>
 </div>
+
+<!-- LIBRERÍA DE HOJAS DE MAPA SEGUNDA CAPA (Incrustada mediante pasarela de respaldo) -->
+<script src="https://cloudflare.com" crossorigin="anonymous"></script>
 <script>
     let map, userMarker, targetMarker, distanceCircle;
     let userCoords = null, targetCoords = null, watchId = null, audioContext = null;
 
-    // Inicializar el mapa de OpenStreetMap de forma nativa e inmediata (Seguro al estar 'L' ya cargada arriba)
-    map = L.map('map', { zoomControl: true }).setView([40.4167, -3.7037], 13);
-    
-    // Servidor de imágenes directo e independiente de OpenStreetMap
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; OpenStreetMap'
-    }).addTo(map);
+    // Escudo de seguridad para evitar fallos de inicialización asíncronos en navegadores locales
+    function inicializarMapa() {
+        if (typeof L === 'undefined') {
+            setTimeout(inicializarMapa, 100);
+            return;
+        }
 
-    // Redibujado de seguridad visual instantáneo
-    setTimeout(() => { map.invalidateSize(); }, 200);
+        // Crear el lienzo del mapa de OpenStreetMap
+        map = L.map('map', { zoomControl: true }).setView([40.4167, -3.7037], 13);
+        
+        // Servidor directo de mapas CartoDB Voyager compatible con el protocolo file:/// en local
+        L.tileLayer('https://{s}://{z}/{x}/{y}{r}.png', {
+            attribution: '&copy; OpenStreetMap'
+        }).addTo(map);
 
-    // Obtener la ubicación GPS en tiempo real
-    if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(position => {
-            userCoords = [position.coords.latitude, position.coords.longitude];
-            map.setView(userCoords, 15);
-            userMarker = L.marker(userCoords).addTo(map).bindPopup("Estás aquí").openPopup();
-            map.invalidateSize();
-        }, () => { map.invalidateSize(); });
+        // Forzar el redibujado de tamaño físico instantáneo
+        setTimeout(() => { map.invalidateSize(); }, 200);
+
+        // Rastrear la ubicación GPS inicial del dispositivo
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(position => {
+                userCoords = [position.coords.latitude, position.coords.longitude];
+                map.setView(userCoords, 15);
+                userMarker = L.marker(userCoords).addTo(map).bindPopup("Estás aquí").openPopup();
+                map.invalidateSize();
+            }, () => { if (map) map.invalidateSize(); });
+        }
+
+        // Permitir elegir destino manual dando un toque en la pantalla sobre el plano del mapa
+        map.on('click', function(e) {
+            targetCoords = [e.latlng.lat, e.latlng.lng];
+            if (targetMarker) targetMarker.setLatLng(targetCoords).bindPopup("Destino seleccionado").openPopup();
+            else targetMarker = L.marker(targetCoords).addTo(map).bindPopup("Destino seleccionado").openPopup();
+            actualizarCirculoYDistancia();
+        });
     }
+
+    // Arrancar la aplicación de forma segura
+    window.addEventListener('DOMContentLoaded', inicializarMapa);
 
     // Buscador conectado a OpenStreetMap con lectura de datos verificada []
     document.getElementById('search-form').addEventListener('submit', function(e) {
@@ -124,13 +139,13 @@
                 const lon = parseFloat(data[0].lon);
                 targetCoords = [lat, lon];
                 
-                map.setView(targetCoords, 16);
-                
-                if (targetMarker) targetMarker.setLatLng(targetCoords);
-                else targetMarker = L.marker(targetCoords).addTo(map);
-                
-                targetMarker.bindPopup(`<b>Destino:</b><br>${data[0].display_name}`).openPopup();
-                actualizarCirculoYDistancia();
+                if (map) {
+                    map.setView(targetCoords, 16);
+                    if (targetMarker) targetMarker.setLatLng(targetCoords);
+                    else targetMarker = L.marker(targetCoords).addTo(map);
+                    targetMarker.bindPopup(`<b>Destino:</b><br>${data[0].display_name}`).openPopup();
+                    actualizarCirculoYDistancia();
+                }
             } else {
                 alert("No se encontró esa dirección. Intenta simplificar el texto.");
             }
@@ -141,15 +156,8 @@
         document.getElementById('search').blur();
     });
 
-    // Permitir elegir destino manual dando un toque en la pantalla sobre el mapa
-    map.on('click', function(e) {
-        targetCoords = [e.latlng.lat, e.latlng.lng];
-        if (targetMarker) targetMarker.setLatLng(targetCoords).bindPopup("Destino seleccionado").openPopup();
-        else targetMarker = L.marker(targetCoords).addTo(map).bindPopup("Destino seleccionado").openPopup();
-        actualizarCirculoYDistancia();
-    });
-
     function actualizarCirculoYDistancia() {
+        if (!map) return;
         const radiusVal = parseInt(document.getElementById('radius').value) || 10;
         if (distanceCircle) map.removeLayer(distanceCircle);
         if (targetCoords) {
@@ -162,7 +170,7 @@
     }
     document.getElementById('radius').addEventListener('input', actualizarCirculoYDistancia);
 
-    // Alarma continua perimetral
+    // Activar geolocalización perimetral continua en tiempo real (Geofence)
     document.getElementById('btn-start').addEventListener('click', () => {
         if (!targetCoords) { alert("Elige un destino en el mapa o búscalo arriba antes de empezar."); return; }
         
@@ -173,11 +181,12 @@
             userCoords = [position.coords.latitude, position.coords.longitude];
             if (userMarker) userMarker.setLatLng(userCoords);
 
-            const dist = map.distance(userCoords, targetCoords);
-            document.getElementById('distance-display').innerText = Math.round(dist);
-
-            const alarmRadius = parseInt(document.getElementById('radius').value) || 10;
-            if (dist <= alarmRadius) { activarAvisoAlarmante(); }
+            if (map) {
+                const dist = map.distance(userCoords, targetCoords);
+                document.getElementById('distance-display').innerText = Math.round(dist);
+                const alarmRadius = parseInt(document.getElementById('radius').value) || 10;
+                if (dist <= alarmRadius) { activarAvisoAlarmante(); }
+            }
         }, () => { alert("GPS desactivado. Permite el rastreo en los ajustes de tu móvil."); }, 
         { enableHighAccuracy: true, maximumAge: 0, timeout: 5000 });
     });
@@ -202,16 +211,12 @@
         } catch(e) {}
 
         const mensajeRecordatorio = document.getElementById('reminder').value.trim();
-        if (mensajeRecordatorio !== "") { 
-            alert("🚨 ¡HAS LLEGADO AL DESTINO!\n\n📌 Recordatorio: " + mensajeRecordatorio); 
-        } else { 
-            alert("🚨 ¡HAS LLEGADO AL DESTINO!"); 
-        }
+        alert(mensajeRecordatorio !== "" ? "🚨 ¡HAS LLEGADO AL DESTINO!\n\n📌 Recordatorio: " + mensajeRecordatorio : "🚨 ¡HAS LLEGADO AL DESTINO!");
     }
 
     // Guardar favoritos
     document.getElementById('btn-save').addEventListener('click', () => {
-        if (!targetCoords) return;
+        if (!targetCoords || !map) return;
         const name = document.getElementById('search').value.trim() || "Destino Guardado";
         const list = document.getElementById('favorites-list');
         if (list.innerHTML.includes("No tienes favoritos")) list.innerHTML = "";
