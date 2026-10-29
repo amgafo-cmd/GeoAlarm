@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GeoAlarma – OpenStreetMap Oficial Solucionado</title>
-    <!-- Estilos oficiales de Leaflet indispensables para estructurar las capas del mapa -->
+    <title>GeoAlarma – OpenStreetMap Oficial Funcional</title>
+    <!-- Estilos oficiales indispensables para que las cuadrículas del mapa no se rompan -->
     <link rel="stylesheet" href="https://cloudflare.com" crossorigin="anonymous" />
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 0; padding: 15px; background-color: #f5f5f7; color: #333; }
@@ -13,7 +13,7 @@
         .status-badge { display: block; text-align: center; font-weight: bold; padding: 8px; background-color: #ffebee; color: #c62828; border-radius: 6px; margin-bottom: 15px; }
         .status-badge.active { background-color: #e8f5e9; color: #2e7d32; }
         
-        /* Contenedor del mapa reforzado con dimensiones fijas estrictas */
+        /* Contenedor del mapa forzado con dimensiones fijas estrictas */
         #map { height: 350px !important; width: 100% !important; border-radius: 8px; margin-bottom: 15px; background: #e5e5e5; display: block; position: relative; z-index: 1; }
         
         .control-group { margin-bottom: 15px; }
@@ -32,15 +32,16 @@
 </head>
 <body>
 <div class="container">
-    <h1>📍 GeoAlarma </h1>
+    <h1>📍 GeoAlarma OSM</h1>
     <div id="status" class="status-badge">Inactivo</div>
 
-    <!-- Formulario estructurado para capturar los teclados móviles (Ir/Siguiente) -->
+    <!-- Formulario para interceptar correctamente los teclados móviles -->
     <form id="search-form" class="control-group" action="#" onsubmit="return false;">
         <label for="search">Buscar dirección en OpenStreetMap:</label>
         <input type="text" id="search" placeholder="Ej: Calle Roma 34 Madrid..." enterkeyhint="search">
     </form>
 
+    <!-- Lienzo del mapa -->
     <div id="map"></div>
 
     <p style="text-align: center; font-size: 14px; margin: 5px 0 15px 0; color: #666;">
@@ -92,7 +93,6 @@
     // Sistema automático para redibujar el mapa si detecta cambios de pantalla en móviles
     const mapObserver = new ResizeObserver(() => { if (map) map.invalidateSize(); });
     mapObserver.observe(document.getElementById("map"));
-    window.addEventListener('load', () => { setTimeout(() => { map.invalidateSize(); }, 400); });
 
     // Rastrear la ubicación GPS de salida inicial del usuario
     if (navigator.geolocation) {
@@ -101,10 +101,9 @@
             map.setView(userCoords, 15);
             userMarker = L.marker(userCoords).addTo(map).bindPopup("Estás aquí").openPopup();
             map.invalidateSize();
-        }, () => { map.invalidateSize(); });
+        }, () => { if (map) map.invalidateSize(); });
     }
-
-    // SOLUCIÓN AL APAGÓN: Corregido el lector de datos apuntando al índice [0] de la lista devuelta por OpenStreetMap
+    // Buscador conectado a OpenStreetMap sin errores de lectura de datos
     document.getElementById('search-form').addEventListener('submit', function(e) {
         e.preventDefault();
         const query = document.getElementById('search').value.trim();
@@ -115,7 +114,6 @@
         })
         .then(res => res.json())
         .then(data => {
-            // Se añade la validación del índice [0] para evitar romper la carga del mapa
             if (data && data.length > 0) {
                 const lat = parseFloat(data[0].lat);
                 const lon = parseFloat(data[0].lon);
@@ -137,6 +135,7 @@
         });
         document.getElementById('search').blur(); // Cierra el teclado táctil
     });
+
     // Permitir fijar destino manual tocando la pantalla directamente sobre el plano del mapa
     map.on('click', function(e) {
         targetCoords = [e.latlng.lat, e.latlng.lng];
@@ -197,7 +196,6 @@
             setTimeout(() => osc.stop(), 2500);
         } catch(e) {}
 
-        // Ventana emergente que muestra el recordatorio introducido en la caja de texto libre
         const mensajeRecordatorio = document.getElementById('reminder').value.trim();
         if (mensajeRecordatorio !== "") { 
             alert("🚨 ¡HAS LLEGADO AL DESTINO!\n\n📌 Recordatorio: " + mensajeRecordatorio); 
