@@ -11,19 +11,14 @@
         .status-badge { display: block; text-align: center; font-weight: bold; padding: 8px; background-color: #ffebee; color: #c62828; border-radius: 6px; margin-bottom: 15px; }
         .status-badge.active { background-color: #e8f5e9; color: #2e7d32; }
         
-        /* Contenedor del Radar Gráfico Seguro */
-        .radar-box { width: 100%; height: 260px; margin-bottom: 15px; background: #111116; border-radius: 8px; position: relative; display: flex; align-items: center; justify-content: center; overflow: hidden; touch-action: none; }
-        #radar-canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
-        .radar-info { position: relative; z-index: 2; color: #30d158; text-align: center; font-family: monospace; font-size: 14px; background: rgba(0,0,0,0.75); padding: 10px; border-radius: 6px; pointer-events: none; border: 1px solid #222; }
+        /* Panel del Monitor Métrico Autónomo */
+        .radar-panel { width: 100%; height: 200px; margin-bottom: 15px; background: #1c1c1e; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #30d158; border: 1px solid #2c2c2e; }
+        .distancia-grande { font-size: 42px; font-weight: bold; font-family: monospace; margin: 10px 0; }
+        .label-radar { font-size: 12px; color: #eaeaea; letter-spacing: 1px; text-transform: uppercase; }
         
         .control-group { margin-bottom: 15px; }
         label { display: block; margin-bottom: 5px; font-weight: bold; font-size: 14px; }
-        
-        .search-container { display: flex; gap: 8px; }
-        .search-container input { flex: 1; padding: 10px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; font-size: 16px; }
-        .btn-search { background-color: #007aff; color: white; width: auto; max-width: 600px; padding: 10px 15px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; }
-        
-        input[type="number"] { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; font-size: 16px; }
+        input[type="text"], input[type="number"], select { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; font-size: 16px; background-color: white; }
         .radio-container { display: flex; align-items: center; gap: 10px; }
         .radio-container input { flex: 1; }
         .btn-container { display: flex; gap: 10px; margin-bottom: 15px; }
@@ -32,31 +27,42 @@
         .btn-stop { background-color: #ff3b30; color: white; }
         .btn-save { background-color: #ff9500; color: white; }
         .favorites { background: #f2f2f7; padding: 12px; border-radius: 8px; border: 1px dashed #aeaeb2; }
-        .fav-item { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid #e5e5ea; font-size: 14px; cursor: pointer; color: #007aff; }
+        .fav-item { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #e5e5ea; font-size: 14px; cursor: pointer; color: #007aff; font-weight: 500; }
+        .fav-item:last-child { border: none; }
     </style>
 </head>
 <body>
 <div class="container">
-    <h1>📍 GeoAlarma</h1>
+    <h1>📍 GeoAlarm</h1>
     <div id="status" class="status-badge">Inactivo</div>
 
-    <!-- Formulario para capturar el botón Siguiente/Ir del móvil de forma nativa -->
-    <form id="search-form" class="control-group" action="#" onsubmit="return false;">
-        <label for="target-search">Escribe tu destino (Ciudad, Calle) o fija Lat, Lon manual:</label>
-        <div class="search-container">
-            <input type="text" id="target-search" placeholder="Ej: Calle Roma 34 Madrid o 40.41, -3.70" enterkeyhint="search">
-            <button type="submit" class="btn-search">🔍 Buscar</button>
-        </div>
-    </form>
-
-    <!-- Monitor de Radar Nativo en Pantalla (Inmune a bloqueos) -->
-    <div class="radar-box" id="radar-container">
-        <canvas id="radar-canvas"></canvas>
-        <div class="radar-info">
-            <div>DISTANCIA: <span id="dist-txt" style="font-weight:bold; font-size:18px;">--</span></div>
-            <div style="margin-top:4px; font-size:11px; color:#aaa;">Objetivo: <span id="target-txt">Ninguno</span></div>
-        </div>
+    <!-- Monitor Métrico Digital Inteligente -->
+    <div class="radar-panel">
+        <div class="label-radar">Distancia Restante</div>
+        <div class="distancia-grande" id="dist-display">--</div>
+        <div style="font-size: 13px; color: #8e8e93;">Objetivo: <span id="target-display" style="color:#ff9500; font-weight:bold;">Ninguno</span></div>
     </div>
+
+    <!-- NUEVO: Selector de Destinos Preconfigurados sin depender de APIs externas -->
+    <div class="control-group">
+        <label for="city-selector">Seleccionar un destino predefinido:</label>
+        <select id="city-selector">
+            <option value="">-- Elige una ubicación o escribe abajo --</option>
+            <option value="40.4167,-3.7037">Madrid (Km 0 - Puerta del Sol)</option>
+            <option value="41.3851,2.1734">Barcelona (Plaza Cataluña)</option>
+            <option value="39.4699,-0.3763">Valencia (Estación del Norte)</option>
+            <option value="37.3891,-5.9845">Sevilla (Giralda)</option>
+            <option value="41.6560,-0.8773">Zaragoza (Plaza del Pilar)</option>
+            <option value="36.7212,-4.4214">Málaga (Calle Larios)</option>
+            <option value="43.3623,-8.4115">La Coruña (Plaza de María Pita)</option>
+        </select>
+    </div>
+    <!-- Caja para fijar coordenadas manuales personalizadas de cualquier lugar -->
+    <div class="control-group">
+        <label>O introduce coordenadas personalizadas (Latitud, Longitud):</label>
+        <input type="text" id="coords-input" placeholder="Ej: 40.4321, -3.6899">
+    </div>
+
     <div class="control-group">
         <label>Definir radio de aviso:</label>
         <div class="radio-container">
@@ -78,174 +84,110 @@
     </div>
 
     <div class="favorites">
-        <strong>Ubicaciones favoritas:</strong>
+        <strong>Tus ubicaciones guardadas:</strong>
         <div id="favorites-list">
             <div style="color: #888; font-size: 12px; margin-top: 5px;">No tienes favoritos guardados aún.</div>
         </div>
     </div>
 </div>
-
 <script>
-    let userCoords = null, targetCoords = null, watchId = null, audioContext = null;
-    let canvas, ctx, sweepAngle = 0;
+    let targetCoords = null;
+    let userCoords = null;
+    let watchId = null;
+    let audioContext = null;
 
-    window.addEventListener('load', () => {
-        canvas = document.getElementById('radar-canvas');
-        ctx = canvas.getContext('2d');
-        resizeCanvas();
-        animateRadar();
-        
-        if (navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition(position => {
-                userCoords = { lat: position.coords.latitude, lon: position.coords.longitude };
-                updateMetrics();
-            });
+    // Escuchar cambios en el selector desplegable de ciudades preconfiguradas
+    document.getElementById('city-selector').addEventListener('change', function() {
+        let val = this.value;
+        if (val) {
+            document.getElementById('coords-input').value = val;
+            procesarCoordenadas(val);
         }
     });
 
-    function resizeCanvas() {
-        if (canvas) {
-            canvas.width = canvas.parentElement.clientWidth;
-            canvas.height = canvas.parentElement.clientHeight;
-        }
-    }
-    window.addEventListener('resize', resizeCanvas);
+    // Detectar si el usuario escribe coordenadas manuales en la caja de texto
+    document.getElementById('coords-input').addEventListener('input', function() {
+        procesarCoordenadas(this.value);
+    });
 
-    // Dibuja la animación del radar vectorialmente mediante el navegador
-    function animateRadar() {
-        if (!ctx || !canvas) return;
-        ctx.fillStyle = 'rgba(17, 17, 22, 0.15)'; // Efecto estela
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        
-        let cx = canvas.width / 2;
-        let cy = canvas.height / 2;
-        let maxRadius = Math.min(cx, cy) - 15;
-        
-        // Rejilla circular métrica
-        ctx.strokeStyle = '#113f18';
-        ctx.lineWidth = 1;
-        for (let i = 1; i <= 3; i++) {
-            ctx.beginPath(); ctx.arc(cx, cy, maxRadius * (i / 3), 0, Math.PI * 2); ctx.stroke();
-        }
-        ctx.beginPath(); ctx.moveTo(cx - maxRadius, cy); ctx.lineTo(cx + maxRadius, cy); ctx.stroke();
-        ctx.beginPath(); ctx.moveTo(cx, cy - maxRadius); ctx.lineTo(cx, cy + maxRadius); ctx.stroke();
-        
-        // Tu punto de posición actual (Centro)
-        ctx.fillStyle = '#007aff';
-        ctx.beginPath(); ctx.arc(cx, cy, 6, 0, Math.PI * 2); ctx.fill();
-        
-        // Dibujar el punto del destino si está fijado
-        if (userCoords && targetCoords) {
-            let dist = haversine(userCoords.lat, userCoords.lon, targetCoords.lat, targetCoords.lon);
-            let bearing = getBearing(userCoords.lat, userCoords.lon, targetCoords.lat, targetCoords.lon);
-            let rad = (bearing - 90) * Math.PI / 180;
-            
-            let scaleDist = Math.min(dist / 200, 1); // Escala visual proporcional
-            let tx = cx + maxRadius * scaleDist * Math.cos(rad);
-            let ty = cy + maxRadius * scaleDist * Math.sin(rad);
-            
-            ctx.fillStyle = '#ff9500';
-            ctx.beginPath(); ctx.arc(tx, ty, 7, 0, Math.PI * 2); ctx.fill();
-        }
-        
-        // Haz de barrido gráfico continuo
-        sweepAngle = (sweepAngle + 2) % 360;
-        let sweepRad = (sweepAngle * Math.PI) / 180;
-        ctx.strokeStyle = 'rgba(48, 209, 88, 0.2)';
-        ctx.lineWidth = 2;
-        ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(cx + maxRadius * Math.cos(sweepRad), cy + maxRadius * Math.sin(sweepRad)); ctx.stroke();
-        
-        requestAnimationFrame(animateRadar);
-    }
-    // BUSCADOR INMUNE A CORTE DE CONEXIÓN: Utiliza una firma de identidad para evitar bloqueos
-    document.getElementById('search-form').addEventListener('submit', function(e) {
-        e.preventDefault();
-        let text = document.getElementById('target-search').value.trim();
-        if (!text) return;
-
-        let parts = text.split(",");
-        if (parts.length === 2) {
-            let lat = parseFloat(parts[0]);
-            let lon = parseFloat(parts[1]);
+    function procesarCoordenadas(texto) {
+        let partes = texto.split(",");
+        if (partes.length === 2) {
+            let lat = parseFloat(partes[0].trim());
+            let lon = parseFloat(partes[1].trim());
             if (!isNaN(lat) && !isNaN(lon)) {
                 targetCoords = { lat: lat, lon: lon };
-                document.getElementById('target-txt').innerText = `${lat.toFixed(4)}, ${lon.toFixed(4)}`;
-                updateMetrics();
-            }
-        } else {
-            document.getElementById('target-txt').innerText = "Buscando...";
-            fetch(`https://openstreetmap.org{encodeURIComponent(text)}&limit=1`, {
-                headers: { 'Accept': 'application/json', 'User-Agent': 'GeoAlarmaNativa_Verificada/5.0' }
-            })
-            .then(res => res.json())
-            .then(data => {
-                if (data && data.length > 0) {
-                    targetCoords = { lat: parseFloat(data[0].lat), lon: parseFloat(data[0].lon) };
-                    document.getElementById('target-txt').innerText = text;
-                    updateMetrics();
-                } else {
-                    alert("Dirección no encontrada. Intenta detallar un poco más.");
-                    document.getElementById('target-txt').innerText = "Ninguno";
+                document.getElementById('target-display').innerText = `${lat.toFixed(4)}, ${lon.toFixed(4)}`;
+                
+                // Intenta actualizar la métrica en pantalla si el GPS ya detectó al usuario
+                if (navigator.geolocation) {
+                    navigator.geolocation.getCurrentPosition(position => {
+                        userCoords = { lat: position.coords.latitude, lon: position.coords.longitude };
+                        actualizarPantallaMetros();
+                    });
                 }
-            }).catch(() => {
-                alert("Servidor de mapas saturado. Puedes ingresar las coordenadas Lat, Lon a mano separadas por coma.");
-                document.getElementById('target-txt').innerText = "Ninguno";
-            });
+            }
         }
-        document.getElementById('target-search').blur();
-    });
+    }
 
-    // Fórmulas matemáticas de navegación pura (Haversine y Rumbo)
-    function haversine(lat1, lon1, lat2, lon2) {
-        const R = 6371e3;
-        const p1 = lat1 * Math.PI / 180, p2 = lat2 * Math.PI / 180;
-        const dLat = (lat2 - lat1) * Math.PI / 180, dLon = (lon2 - lon1) * Math.PI / 180;
-        const a = Math.sin(dLat/2) * Math.sin(dLat/2) + Math.cos(p1) * Math.cos(p2) * Math.sin(dLon/2) * Math.sin(dLon/2);
+    // Fórmula matemática pura Haversine para calcular distancias métricas sobre la Tierra (Independiente de servidores)
+    function calcularMetros(lat1, lon1, lat2, lon2) {
+        const R = 6371e3; // Radio de la Tierra en metros
+        const phi1 = lat1 * Math.PI / 180;
+        const phi2 = lat2 * Math.PI / 180;
+        const deltaPhi = (lat2 - lat1) * Math.PI / 180;
+        const deltaLambda = (lon2 - lon1) * Math.PI / 180;
+
+        const a = Math.sin(deltaPhi / 2) * Math.sin(deltaPhi / 2) +
+                  Math.cos(phi1) * Math.cos(phi2) *
+                  Math.sin(deltaLambda / 2) * Math.sin(deltaLambda / 2);
         return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
     }
 
-    function getBearing(lat1, lon1, lat2, lon2) {
-        let dLon = (lon2 - lon1) * Math.PI / 180;
-        let lat1Rad = lat1 * Math.PI / 180, lat2Rad = lat2 * Math.PI / 180;
-        let y = Math.sin(dLon) * Math.cos(lat2Rad);
-        let x = Math.cos(lat1Rad) * Math.sin(lat2Rad) - Math.sin(lat1Rad) * Math.cos(lat2Rad) * Math.cos(dLon);
-        return (Math.atan2(y, x) * 180 / Math.PI + 360) % 360;
+    function actualizarPantallaMetros() {
+        if (!targetCoords || !userCoords) return;
+        const m = calcularMetros(userCoords.lat, userCoords.lon, targetCoords.lat, targetCoords.lon);
+        if (m >= 1000) {
+            document.getElementById('dist-display').innerText = (m / 1000).toFixed(2) + " km";
+        } else {
+            document.getElementById('dist-display').innerText = Math.round(m) + " m";
+        }
     }
 
-    function updateMetrics() {
-        if (!userCoords || !targetCoords) return;
-        let d = haversine(userCoords.lat, userCoords.lon, targetCoords.lat, targetCoords.lon);
-        document.getElementById('dist-txt').innerText = d >= 1000 ? (d / 1000).toFixed(2) + " km" : Math.round(d) + " m";
-    }
-
-    // Monitoreo perimetral continuo en tiempo real (Geofence)
+    // Activar el rastreo perimetral del GPS del dispositivo
     document.getElementById('btn-start').addEventListener('click', () => {
-        if (!targetCoords) { alert("Define primero una ubicación en el buscador."); return; }
+        if (!targetCoords) { alert("Por favor, introduce o selecciona un destino antes de activar la alarma."); return; }
+        
         document.getElementById('status').innerText = "🚨 Alarma Activa";
         document.getElementById('status').className = "status-badge active";
 
         watchId = navigator.geolocation.watchPosition(position => {
             userCoords = { lat: position.coords.latitude, lon: position.coords.longitude };
-            updateMetrics();
+            actualizarPantallaMetros();
             
-            let d = haversine(userCoords.lat, userCoords.lon, targetCoords.lat, targetCoords.lon);
-            let alarmRadius = parseInt(document.getElementById('radius').value) || 10;
+            const m = calcularMetros(userCoords.lat, userCoords.lon, targetCoords.lat, targetCoords.lon);
+            const alarmRadius = parseInt(document.getElementById('radius').value) || 10;
             
-            if (d <= alarmRadius) { triggerAlarm(); }
-        }, () => { alert("GPS bloqueado o apagado. Concede permisos de ubicación."); }, 
-        { enableHighAccuracy: true, maximumAge: 0, timeout: 5000 });
+            // Si el usuario entra al radio de la geocerca (ej: 10 metros), se dispara el aviso
+            if (m <= alarmRadius) { dispararAlertaLlegada(); }
+        }, () => {
+            alert("Acceso al GPS denegado. Concede permisos de ubicación a tu navegador web.");
+        }, { enableHighAccuracy: true, maximumAge: 0, timeout: 5000 });
     });
 
-    document.getElementById('btn-stop').addEventListener('click', stopTracking);
+    document.getElementById('btn-stop').addEventListener('click', detenerAlarma);
 
-    function stopTracking() {
+    function detenerAlarma() {
         if (watchId) { navigator.geolocation.clearWatch(watchId); watchId = null; }
+        document.getElementById('dist-display').innerText = "--";
         document.getElementById('status').innerText = "Inactivo";
         document.getElementById('status').className = "status-badge";
     }
 
-    function triggerAlarm() {
-        stopTracking();
+    function dispararAlertaLlegada() {
+        detenerAlarma();
+        
+        // Zumbador acústico nativo independiente de archivos de audio
         try {
             audioContext = new (window.AudioContext || window.webkitAudioContext)();
             let osc = audioContext.createOscillator();
@@ -255,29 +197,36 @@
             setTimeout(() => osc.stop(), 2500);
         } catch(e) {}
 
-        const msg = document.getElementById('reminder').value.trim();
-        alert(msg !== "" ? "🚨 ¡HAS LLEGADO AL DESTINO!\n\n📌 Recordatorio: " + msg : "🚨 ¡HAS LLEGADO AL DESTINO!");
+        // Ventana emergente con el recordatorio del cuadro de texto libre
+        const mensajeRecordatorio = document.getElementById('reminder').value.trim();
+        if (mensajeRecordatorio !== "") { 
+            alert("🚨 ¡HAS LLEGADO AL DESTINO!\n\n📌 Recordatorio: " + mensajeRecordatorio); 
+        } else { 
+            alert("🚨 ¡HAS LLEGADO AL DESTINO!"); 
+        }
     }
 
-    // Favoritos
+    // Guardar favoritos permanentes en la interfaz
     document.getElementById('btn-save').addEventListener('click', () => {
         if (!targetCoords) return;
-        let name = document.getElementById('target-search').value.trim() || "Destino";
-        let list = document.getElementById('favorites-list');
-        if (list.innerHTML.includes("No tienes favoritos")) list.innerHTML = "";
-        let item = document.createElement('div');
-        item.className = 'fav-item';
-        item.innerHTML = `<span>⭐ ${name.substring(0, 25)}</span>`;
-        
-        let cGuardadas = { ...targetCoords };
-        let nGuardado = name;
-        item.onclick = () => {
-            targetCoords = cGuardadas;
-            document.getElementById('target-search').value = nGuardado;
-            document.getElementById('target-txt').innerText = nGuardado;
-            updateMetrics();
-        };
-        list.appendChild(item);
+        const nombreFav = prompt("Asigna un nombre a esta ubicación favorita:", "Mi Destino");
+        if (nombreFav) {
+            const list = document.getElementById('favorites-list');
+            if (list.innerHTML.includes("No tienes favoritos")) list.innerHTML = "";
+            const item = document.createElement('div');
+            item.className = 'fav-item';
+            item.innerHTML = `<span>⭐ ${nombreFav}</span> <small>${targetCoords.lat.toFixed(3)}, ${targetCoords.lon.toFixed(3)}</small>`;
+            
+            let coordsGuardadas = { ...targetCoords };
+            item.onclick = () => {
+                targetCoords = coordsGuardadas;
+                document.getElementById('city-selector').value = "";
+                document.getElementById('coords-input').value = `${targetCoords.lat}, ${targetCoords.lon}`;
+                document.getElementById('target-display').innerText = `${targetCoords.lat.toFixed(4)}, ${targetCoords.lon.toFixed(4)}`;
+                actualizarPantallaMetros();
+            };
+            list.appendChild(item);
+        }
     });
 </script>
 </body>
